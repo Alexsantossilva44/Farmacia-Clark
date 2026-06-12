@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, UserPlus, RotateCcw, User, MapPin, Phone } from 'lucide-react'
-import { useEffect, useRef, useState, type MouseEvent, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import {
   ApiError,
   atualizarCliente,
@@ -308,17 +308,6 @@ export function ClientesCadastroTab() {
     setFieldErrors({})
   }
 
-  function bloquearFocoForaDoCpf(e: MouseEvent<HTMLFormElement>) {
-    if (!cpfImpedeProximosCampos()) return
-    const target = e.target as HTMLElement
-    if (target === cpfInputRef.current) return
-    const formEl = e.currentTarget
-    if (!formEl.contains(target)) return
-    if (target.matches('input:not([tabindex="-1"]), textarea, select, button[type="button"]')) {
-      e.preventDefault()
-    }
-  }
-
   async function verificarContatoDisponivel(
     telefone?: string,
     email?: string,
@@ -383,7 +372,7 @@ export function ClientesCadastroTab() {
     return cpfEmUso || fieldErrors.cpf === MSG_CPF_DUPLICADO
   }
 
-  /** Data e sexo só liberados após CPF válido, verificado e não duplicado. */
+  /** Data e sexo (após CPF) só liberados quando CPF estiver válido e não duplicado. */
   function cpfImpedeProximosCampos(): boolean {
     if (isEdicao) return false
     if (verificandoCpf || cpfBloqueado()) return true
@@ -743,10 +732,7 @@ export function ClientesCadastroTab() {
           className="form-sem-autofill flex flex-1 flex-col min-h-0"
           onSubmit={(e) => e.preventDefault()}
           onFocusCapture={liberarCamposDoFormulario}
-          onMouseDown={(e) => {
-            liberarCamposDoFormulario()
-            bloquearFocoForaDoCpf(e)
-          }}
+          onMouseDown={liberarCamposDoFormulario}
         >
           <div
             aria-hidden="true"
