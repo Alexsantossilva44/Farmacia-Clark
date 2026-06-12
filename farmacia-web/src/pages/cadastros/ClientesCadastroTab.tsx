@@ -36,7 +36,7 @@ import { focarPrimeiroErro } from '@/lib/validacao-formulario'
  * Evoluções recentes no front:
  * - Endereço: UF e Cidade obrigatórios (validarUfEndereco / validarCidadeObrigatoria).
  * - Submit: validarFormulario marca todos os erros e focarPrimeiroErro leva ao primeiro campo.
- * - Erros só aparecem após blur do próprio campo ou ao clicar em Cadastrar (marca todos como tocados).
+ * - CPF inválido ou duplicado: exibe erro, aguarda 3s e limpa o campo para nova digitação.
  * - Observações: placeholder orienta registro de alergias (campo continua opcional).
  * - Nome completo: maxLength 100 + sanitizeNomePessoa (antes 150 só no banco/API).
  */
@@ -53,6 +53,7 @@ import type { Cliente, Endereco } from '@/types/cliente'
 const MSG_TELEFONE_DUPLICADO = 'Telefone já cadastrado em outro cliente.'
 const MSG_EMAIL_DUPLICADO = 'E-mail já cadastrado em outro cliente.'
 const MSG_CPF_DUPLICADO = 'CPF já cadastrado. Use Buscar por CPF para editar.'
+const CPF_RESET_DELAY_MS = 3000
 
 type CampoClienteForm =
   | 'nome'
@@ -238,12 +239,18 @@ export function ClientesCadastroTab() {
   const emailInputRef = useRef<HTMLInputElement>(null)
   const cpfInputRef = useRef<HTMLInputElement>(null)
   const camposTocadosRef = useRef<Partial<Record<CampoClienteForm, boolean>>>({})
+  const cpfResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cpfValidacaoRef = useRef(0)
 
   const isEdicao = clienteId !== null
 
   useEffect(() => {
     camposTocadosRef.current = camposTocados
   }, [camposTocados])
+
+  useEffect(() => () => {
+    if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
+  }, [])
 
   useEffect(() => {
     if (isEdicao) setBloquearAutofillInicial(false)
@@ -304,8 +311,57 @@ export function ClientesCadastroTab() {
   }
 
   function resetValidacaoFormulario() {
+    cancelarLimpezaCpfAgendada()
     setCamposTocados({})
     setFieldErrors({})
+  }
+
+  function cancelarLimpezaCpfAgendada() {
+    if (cpfResetTimerRef.current) {
+      clearTimeout(cpfResetTimerRef.current)
+      cpfResetTimerRef.current = null
+    }
+  }
+
+  function limparCpfParaNovaEntrada() {
+    setCpfEmUso(false)
+    setForm((prev) => ({ ...prev, cpf: '' }))
+    setFieldErrors((prev) => ({ ...prev, cpf: undefined }))
+    setCamposTocados((prev) => {
+      const { cpf: _cpf, ...rest } = prev
+      return rest
+    })
+    limparErrosCamposAdjacentesAoCpf()
+    focarCampo(cpfInputRef)
+  }
+
+  function agendarLimpezaCpfAposErro() {
+    cancelarLimpezaCpfAgendada()
+    cpfResetTimerRef.current = setTimeout(() => {
+      cpfResetTimerRef.current = null
+      limparCpfParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
+  }
+
+  async function confirmarCpfCadastro(cpf: string): Promise<void> {
+    if (isEdicao) return
+    const digits = onlyDigits(cpf)
+    if (digits.length !== 11) return
+
+    const validacaoId = ++cpfValidacaoRef.current
+    marcarCampoTocado('cpf')
+    const cpfErr = validarCpf(cpf)
+    if (cpfErr) {
+      setFieldErrors((prev) => ({ ...prev, cpf: cpfErr }))
+      limparErrosCamposAdjacentesAoCpf()
+      focarCampo(cpfInputRef)
+      agendarLimpezaCpfAposErro()
+      return
+    }
+
+    const duplicado = await verificarCpfDisponivel(cpf)
+    if (validacaoId !== cpfValidacaoRef.current) return
+    if (duplicado) agendarLimpezaCpfAposErro()
   }
 
   async function verificarContatoDisponivel(
@@ -610,6 +666,7 @@ export function ClientesCadastroTab() {
             cpf: MSG_CPF_DUPLICADO,
           }))
           focarCampo(cpfInputRef)
+          agendarLimpezaCpfAposErro()
         } else if (tipo.includes('telefone-duplicado') || detail.includes('telefone')) {
           setTelefoneEmUso(true)
           marcarCampoTocado('telefone')
@@ -795,6 +852,8 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onChange={(e) => {
+                    cancelarLimpezaCpfAgendada()
+                    cpfValidacaoRef.current += 1
                     const cpf = onlyDigits(e.target.value).slice(0, 11)
                     setCpfEmUso(false)
                     limparErrosCamposAdjacentesAoCpf()
@@ -820,17 +879,17 @@ export function ClientesCadastroTab() {
                         cpf: validarCpf(cpf) ?? undefined,
                       }))
                     }
+                    if (!isEdicao && cpf.length === 11) {
+                      void confirmarCpfCadastro(cpf)
+                    }
                   }}
                   onBlur={() => {
                     if (isEdicao) return
+                    if (onlyDigits(form.cpf).length === 11) return
                     marcarCampoTocado('cpf')
                     const cpfErr = validarCpf(form.cpf)
                     setFieldErrors((prev) => ({ ...prev, cpf: cpfErr ?? undefined }))
-                    if (cpfErr) {
-                      limparErrosCamposAdjacentesAoCpf()
-                      return
-                    }
-                    void verificarCpfDisponivel(form.cpf)
+                    if (cpfErr) limparErrosCamposAdjacentesAoCpf()
                   }}
                   error={erroCampo('cpf')}
                   disabled={isEdicao}
