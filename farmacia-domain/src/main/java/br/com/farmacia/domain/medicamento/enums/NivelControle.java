@@ -26,7 +26,8 @@ public enum NivelControle {
 
     public String getTipoReceitaRequerido() {
         return switch (this) {
-            case CONTROLADO_B1 -> "BRANCA_ESPECIAL";
+            // B1 e B2 são entorpecentes (Lista B, Portaria 344/98) — ambos exigem Branca Especial
+            case CONTROLADO_B1, CONTROLADO_B2 -> "BRANCA_ESPECIAL";
             case CONTROLADO_C1 -> "AZUL";
             case CONTROLADO_C2 -> "AMARELA";
             case ANTIMICROBIANO -> "SIMPLES ou ANTIMICROBIANO";

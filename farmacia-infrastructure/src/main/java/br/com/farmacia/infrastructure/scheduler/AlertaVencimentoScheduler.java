@@ -159,6 +159,7 @@ public class AlertaVencimentoScheduler {
         List<ItemEstoque> itensAbaixoMinimo = estoqueRepository
             .findItensAbaixoDoMinimo();
 
+        int alertasGerados = 0; // M-05: conta apenas alertas efetivamente salvos (exclui duplicatas já abertas)
         for (ItemEstoque item : itensAbaixoMinimo) {
             boolean alertaJaExiste = alertaRepository.existeAlertaAbertoPorMedicamento(
                 item.getMedicamento().getId(), TipoAlerta.ESTOQUE_MINIMO
@@ -182,9 +183,10 @@ public class AlertaVencimentoScheduler {
                 .build();
 
             alertaRepository.save(alerta);
+            alertasGerados++; // M-05: incrementa só após save — não conta itens ignorados por duplicata
         }
 
-        log.info("[Scheduler] {} alerta(s) de estoque mínimo gerado(s).", itensAbaixoMinimo.size());
+        log.info("[Scheduler] {} alerta(s) de estoque mínimo gerado(s) de {} candidato(s).", alertasGerados, itensAbaixoMinimo.size()); // M-05: distingue gerados vs candidatos totais
     }
 
     // ─── Job 4: Alertar estoque zerado ───────────────────────────────────────

@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -99,7 +98,7 @@ public class ValidarReceitaUseCase {
         }
 
         // ── Regra 2: Receita não pode estar vencida ───────────────────────────
-        if (!LocalDate.now().isBefore(receita.getDataValidade())) { // C-09: alinhado com Receita.estaVencida()
+        if (receita.estaVencida()) { // C-09: delega ao domínio — evita duplicação e usa a semântica corrigida de isAfter()
             violacoes.add("Receita vencida em " + receita.getDataValidade()
                           + ". Validade máxima: " + receita.getTipo().getValidadeDias() + " dias.");
         }

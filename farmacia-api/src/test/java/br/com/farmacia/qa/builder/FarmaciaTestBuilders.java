@@ -171,7 +171,9 @@ public final class FarmaciaTestBuilders {
         public static LoteBuilder umLoteVencido() {
             return new LoteBuilder()
                 .comDataValidade(LocalDate.now().minusDays(1))
-                .comStatus(StatusLote.VENCIDO);
+                // C-08: status ATIVO simula lote expirado ainda não processado pelo scheduler;
+                // findByStatusAndDataValidadeBefore(ATIVO, ...) só encontra lotes ATIVOS
+                .comStatus(StatusLote.ATIVO);
         }
 
         /** Lote prestes a vencer (dentro de 30 dias) — deve gerar alerta. */

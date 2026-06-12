@@ -63,7 +63,9 @@ public class Receita {
     }
 
     public boolean estaVencida() {
-        return !LocalDate.now().isBefore(this.dataValidade); // C-09: inclui o próprio dia de vencimento
+        // C-09 corrigido: dataValidade é o último dia válido (inclusive); isAfter() é estritamente
+        // "depois de", garantindo mutex com estaValida() que usa !isAfter() (inclusive o dia).
+        return LocalDate.now().isAfter(this.dataValidade);
     }
 
     public void atribuirId(UUID id) {
