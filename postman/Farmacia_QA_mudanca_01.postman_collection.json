@@ -1,0 +1,549 @@
+{
+  "info": {
+    "name": "Farmacia QA — mudanca_01",
+    "description": "Collection para regressão pós-refatoração DDD (entidades, exceções de domínio, Problem Details RFC 7807).\n\nVariáveis: baseUrl=http://localhost:8080\n\nCredenciais dev:\n- admin@farmacia.com / admin123\n- gerente@farmacia.com / ger123\n- farmaceutico@farmacia.com / farm123\n- estoquista@farmacia.com / est123\n- balconista@farmacia.com / bal123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "tokenFarmaceutico", "value": "" },
+    { "key": "pdvId", "value": "" },
+    { "key": "funcionarioId", "value": "" },
+    { "key": "medicamentoId", "value": "" },
+    { "key": "receitaId", "value": "" },
+    { "key": "vendaId", "value": "" },
+    { "key": "clienteId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 — Autenticação",
+      "item": [
+        {
+          "name": "Login Admin (salva token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('token', body.accessToken || body.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@farmacia.com\",\n  \"senha\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Login Farmacêutico (salva tokenFarmaceutico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('tokenFarmaceutico', body.accessToken || body.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"farmaceutico@farmacia.com\",\n  \"senha\": \"farm123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Login Senha Inválida (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('type credenciais-invalidas', () => {",
+                  "  const p = pm.response.json();",
+                  "  pm.expect(p.type).to.include('credenciais-invalidas');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@farmacia.com\",\n  \"senha\": \"senha_errada\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Contexto Autenticado",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenFarmaceutico}}" }],
+            "url": "{{baseUrl}}/api/v1/auth/contexto"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — PDV",
+      "item": [
+        {
+          "name": "Contexto PDV-01 (salva pdvId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.pdvId) pm.collectionVariables.set('pdvId', body.pdvId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pdv/contexto?numero=PDV-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pdv", "contexto"],
+              "query": [{ "key": "numero", "value": "PDV-01" }]
+            }
+          }
+        },
+        {
+          "name": "PDV Não Encontrado (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('type pdv-nao-encontrado', () => {",
+                  "  pm.expect(pm.response.json().type).to.include('pdv-nao-encontrado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/pdv/contexto?numero=PDV-INEXISTENTE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "pdv", "contexto"],
+              "query": [{ "key": "numero", "value": "PDV-INEXISTENTE" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Caixa",
+      "item": [
+        {
+          "name": "Consultar Caixa Aberto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/caixa/aberto?pdvId={{pdvId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "caixa", "aberto"],
+              "query": [{ "key": "pdvId", "value": "{{pdvId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Abrir Caixa",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdvId\": \"{{pdvId}}\",\n  \"funcionarioId\": \"{{funcionarioId}}\",\n  \"saldoAbertura\": 100.00\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/caixa/abrir"
+          }
+        },
+        {
+          "name": "Fechar Caixa",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdvId\": \"{{pdvId}}\",\n  \"observacao\": \"Fechamento teste QA mudanca_01\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/caixa/fechar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Venda",
+      "item": [
+        {
+          "name": "Realizar Venda (template — preencher IDs)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.collectionVariables.set('vendaId', body.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdv\": { \"id\": \"{{pdvId}}\" },\n  \"funcionario\": { \"id\": \"{{funcionarioId}}\" },\n  \"receita\": { \"id\": \"{{receitaId}}\" },\n  \"compradorCpf\": \"12345678901\",\n  \"compradorNome\": \"Comprador Teste QA\",\n  \"itens\": [\n    {\n      \"medicamento\": { \"id\": \"{{medicamentoId}}\" },\n      \"quantidade\": 1,\n      \"precoUnitario\": 45.90,\n      \"desconto\": 0\n    }\n  ],\n  \"pagamentos\": [\n    { \"forma\": \"DINHEIRO\", \"valor\": 50.00 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/vendas"
+          }
+        },
+        {
+          "name": "Consultar Venda",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/vendas/{{vendaId}}"
+          }
+        },
+        {
+          "name": "Cancelar Venda",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/vendas/{{vendaId}}?motivo=Cancelamento teste QA",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "vendas", "{{vendaId}}"],
+              "query": [{ "key": "motivo", "value": "Cancelamento teste QA" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Receituário",
+      "item": [
+        {
+          "name": "Cadastrar Receita",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('receitaId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numeroReceita\": \"REC-QA-{{$timestamp}}\",\n  \"tipo\": \"AZUL\",\n  \"dataEmissao\": \"2026-05-25\",\n  \"prescritorId\": \"SUBSTITUIR_PRESCRITOR_UUID\",\n  \"clienteId\": \"{{clienteId}}\",\n  \"cid\": \"F41.1\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/receitas"
+          }
+        },
+        {
+          "name": "Validar Receita (farmaceutico)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{tokenFarmaceutico}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    {\n      \"medicamentoId\": \"{{medicamentoId}}\",\n      \"quantidade\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/receitas/{{receitaId}}/validar"
+          }
+        },
+        {
+          "name": "Buscar Receita por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/receitas/{{receitaId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Estoque",
+      "item": [
+        {
+          "name": "Saldo por Medicamento",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/estoque/medicamentos/{{medicamentoId}}"
+          }
+        },
+        {
+          "name": "Lotes FEFO",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/estoque/medicamentos/{{medicamentoId}}/lotes"
+          }
+        },
+        {
+          "name": "Entrada Estoque",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentoId\": \"{{medicamentoId}}\",\n  \"numeroLote\": \"LOT-QA-{{$timestamp}}\",\n  \"dataValidade\": \"2027-12-31\",\n  \"dataFabricacao\": \"2026-01-01\",\n  \"quantidade\": 50,\n  \"precoCusto\": 20.00,\n  \"quantidadeMinima\": 5,\n  \"quantidadeMaxima\": 500\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/estoque/entrada"
+          }
+        },
+        {
+          "name": "Ajuste Saldo Positivo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentoId\": \"{{medicamentoId}}\",\n  \"loteId\": \"SUBSTITUIR_LOTE_UUID\",\n  \"tipo\": \"AJUSTE_POSITIVO\",\n  \"quantidade\": 5,\n  \"motivo\": \"Ajuste inventário teste QA mudanca_01\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/estoque/ajuste"
+          }
+        },
+        {
+          "name": "Ajuste Sem Motivo (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('type estoque-invalido', () => {",
+                  "  pm.expect(pm.response.json().type).to.include('estoque-invalido');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicamentoId\": \"{{medicamentoId}}\",\n  \"tipo\": \"AJUSTE_POSITIVO\",\n  \"quantidade\": 1,\n  \"motivo\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/estoque/ajuste"
+          }
+        },
+        {
+          "name": "Alertas Abertos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/estoque/alertas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Cliente",
+      "item": [
+        {
+          "name": "Cadastrar Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('clienteId', pm.response.json().id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Cliente QA Teste\",\n  \"cpf\": \"52998224725\",\n  \"dataNascimento\": \"1990-05-15\",\n  \"sexo\": \"M\",\n  \"telefone\": \"21987654321\",\n  \"email\": \"cliente.qa.{{$timestamp}}@teste.com\",\n  \"endereco\": {\n    \"logradouro\": \"Rua Teste\",\n    \"numero\": \"100\",\n    \"bairro\": \"Centro\",\n    \"cidade\": \"Rio de Janeiro\",\n    \"uf\": \"RJ\",\n    \"cep\": \"20040020\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "Contato Disponível",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/contato/disponivel?telefone=21999998888&email=novo@teste.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "clientes", "contato", "disponivel"],
+              "query": [
+                { "key": "telefone", "value": "21999998888" },
+                { "key": "email", "value": "novo@teste.com" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Compras",
+      "item": [
+        {
+          "name": "Listar Pedidos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/compras/pedidos"
+          }
+        },
+        {
+          "name": "Cadastrar Fornecedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razaoSocial\": \"Fornecedor QA Ltda\",\n  \"nomeFantasia\": \"Fornecedor QA\",\n  \"cnpj\": \"11222333000181\",\n  \"email\": \"fornecedor.qa@teste.com\",\n  \"telefone\": \"1133334444\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/fornecedores"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — Medicamento",
+      "item": [
+        {
+          "name": "Listar Medicamentos (salva 1º id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const page = pm.response.json();",
+                  "  const content = page.content || page;",
+                  "  if (Array.isArray(content) && content.length > 0) {",
+                  "    pm.collectionVariables.set('medicamentoId', content[0].id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/medicamentos?size=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "medicamentos"],
+              "query": [{ "key": "size", "value": "5" }]
+            }
+          }
+        },
+        {
+          "name": "Medicamento Inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('type medicamento-nao-encontrado', () => {",
+                  "  pm.expect(pm.response.json().type).to.include('medicamento-nao-encontrado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/v1/medicamentos/00000000-0000-0000-0000-000000000001"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+**/target
+**/node_modules
+**/.git
+farmacia-web/dist
+*.md
+.env
+.env.prod
+logs

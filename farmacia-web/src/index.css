@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-bg-deep: #070b14;
+  --color-bg-elevated: #0f1624;
+  --color-mint: #2dd4a8;
+  --color-mint-dim: #1a9e7a;
+  --color-coral: #ff3366;
+  --color-coral-dim: #cc2952;
+  --color-amber: #ffb020;
+  --color-sky: #38bdf8;
+  --color-violet: #a78bfa;
+}
+
+@layer base {
+  html {
+    @apply antialiased scroll-smooth overflow-x-hidden;
+  }
+
+  body {
+    @apply bg-bg-deep text-[#f0f4f8] font-sans min-h-screen overflow-x-hidden;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(45, 212, 168, 0.12), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 10%, rgba(255, 51, 102, 0.08), transparent),
+      radial-gradient(ellipse 50% 30% at 50% 100%, rgba(255, 176, 32, 0.05), transparent);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    z-index: 9999;
+  }
+
+  ::selection {
+    @apply bg-mint/30 text-white;
+  }
+
+  select {
+    color-scheme: dark;
+  }
+
+  input,
+  textarea {
+    color-scheme: dark;
+  }
+
+  /* Autofill do navegador — evita fundo branco/amarelo no tema escuro */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  textarea:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0f1624 inset !important;
+    box-shadow: 0 0 0 1000px #0f1624 inset !important;
+    -webkit-text-fill-color: #f0f4f8 !important;
+    caret-color: #f0f4f8;
+    border-color: rgba(255, 255, 255, 0.1);
+    transition: background-color 600000s ease-in-out 0s;
+  }
+
+  /* Oculta ícone/popup "Gerenciar informações pessoais" do Chrome/Edge */
+  .form-sem-autofill input::-webkit-contacts-auto-fill-button,
+  .form-sem-autofill input::-webkit-credentials-auto-fill-button {
+    visibility: hidden !important;
+    display: none !important;
+    pointer-events: none !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+  }
+
+  option {
+    background-color: #0f1624;
+    color: #f0f4f8;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10;
+  }
+
+  .glow-mint {
+    box-shadow: 0 8px 32px rgba(45, 212, 168, 0.12);
+  }
+
+  .glow-coral {
+    box-shadow: 0 8px 32px rgba(255, 51, 102, 0.1);
+  }
+
+  .page-shell {
+    @apply h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden;
+  }
+
+  .page-header-band {
+    @apply shrink-0 z-10 w-full max-w-7xl bg-bg-deep/95 backdrop-blur-xl border-b border-white/10
+      px-4 pt-4 pb-4 sm:px-6 sm:pt-6 lg:px-10 lg:pt-10 lg:pb-5;
+  }
+
+  .page-scroll-body {
+    @apply flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-7xl
+      px-4 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-6;
+  }
+
+  .page-tabs {
+    @apply flex gap-2 mt-4 sm:mt-5 overflow-x-auto flex-nowrap pb-1 -mx-1 px-1;
+    scrollbar-width: thin;
+  }
+
+  .page-tabs > * {
+    @apply shrink-0;
+  }
+
+  .table-scroll {
+    @apply overflow-x-auto -mx-1 px-1;
+  }
+}

@@ -1,0 +1,28 @@
+# Build
+target/
+*.class
+*.jar
+*.war
+
+# Logs
+logs/
+*.log
+*.log.*.gz
+
+# Secrets e credenciais
+secrets/
+*.env
+.env*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.launch
+
+# Maven wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# OS
+Thumbs.db
+.DS_Store

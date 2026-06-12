@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Módulo: farmacia-domain
+        Responsabilidade: Núcleo do domínio — entidades, enums,
+                          repositórios (interfaces) e domain services.
+        Regra: ZERO dependência de frameworks Spring/JPA aqui.
+               Apenas Java puro + Lombok.
+        Author/Orquestrador: Alex Silva e Claude
+    -->
+
+    <parent>
+        <groupId>br.com.farmacia</groupId>
+        <artifactId>sistema-farmaceutico</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>farmacia-domain</artifactId>
+    <name>Farmacia :: Domain</name>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <!-- Apenas Lombok no domínio — sem Spring, sem JPA -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Jakarta Validation (apenas annotations de contrato) -->
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -1,0 +1,48 @@
+## ============================================================
+## Sistema Farmacêutico — application-test.yml
+## Perfil exclusivo para testes (Unit + WebMvc + IT + BDD)
+## Author/Orquestrador: Alex Silva e Claude
+## ============================================================
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:farmacia_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=true
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
+  cache:
+    type: simple
+
+logging:
+  level:
+    root: WARN
+    br.com.farmacia: DEBUG
+    org.hibernate.SQL: DEBUG
+
+app:
+  security:
+    jwt:
+      private-key-location: classpath:jwt/test-private.pem
+      public-key-location: classpath:jwt/test-public.pem
+    swagger-public: false
+  cors:
+    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*"

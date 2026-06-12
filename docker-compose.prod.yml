@@ -1,0 +1,88 @@
+## Farmácia Clark — stack de produção (homologação ou loja)
+## Uso:
+##   cp .env.prod.example .env.prod   # edite senhas e CORS
+##   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: farmacia-prod-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-farmacia}
+      POSTGRES_USER: ${POSTGRES_USER:-farmacia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - farmacia_prod_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-farmacia} -d ${POSTGRES_DB:-farmacia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - farmacia-prod
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: farmacia-prod-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USERNAME:-farmacia}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:?defina RABBIT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+    networks:
+      - farmacia-prod
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: farmacia-prod-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-farmacia}
+      DB_USERNAME: ${POSTGRES_USER:-farmacia}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_PRIVATE_KEY_LOCATION: file:/app/secrets/jwt-private.pem
+      JWT_PUBLIC_KEY_LOCATION: file:/app/secrets/jwt-public.pem
+      RABBIT_HOST: rabbitmq
+      RABBIT_PORT: 5672
+      RABBIT_USERNAME: ${RABBIT_USERNAME:-farmacia}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8080}
+      APP_BOOTSTRAP_ADMIN_EMAIL: ${APP_BOOTSTRAP_ADMIN_EMAIL:-}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-}
+      APP_BOOTSTRAP_ADMIN_NOME: ${APP_BOOTSTRAP_ADMIN_NOME:-Administrador}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - ${JWT_KEYS_DIR:-./secrets/jwt}:/app/secrets:ro
+    networks:
+      - farmacia-prod
+
+  web:
+    build:
+      context: ./farmacia-web
+      dockerfile: Dockerfile
+    container_name: farmacia-prod-web
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-80}:80"
+    networks:
+      - farmacia-prod
+
+volumes:
+  farmacia_prod_pg:
+
+networks:
+  farmacia-prod:
+    name: farmacia-prod-network

@@ -1,0 +1,68 @@
+ID;Módulo;Tipo;Prioridade;Cenário;Pré-condição;Passos;Resultado Esperado;HTTP;type URI;Exceção Domínio;Automatizado;Comando/Referência;Status;Observações
+AUTH-01;Autenticação;Postman;Alta;Login com credenciais válidas;API rodando;POST /api/v1/auth/token com admin@farmacia.com;Token JWT retornado;200;;;Não;Postman > 01 Auth > Login Admin;Pendente;
+AUTH-02;Autenticação;Postman;Alta;Login com senha errada;API rodando;POST /api/v1/auth/token senha inválida;Problem 401 credenciais-invalidas;401;credenciais-invalidas;CredenciaisInvalidasException;Não;Postman > 01 Auth > Login Senha Inválida;Pendente;
+AUTH-03;Autenticação;Postman;Média;Contexto autenticado farmacêutico;Token farmaceutico@farmacia.com;GET /api/v1/auth/contexto; possuiRegistroFarmaceutico=true;200;;;Não;Postman > 01 Auth > Contexto;Pendente;
+PDV-01;PDV;Postman;Alta;Contexto PDV existente;Token válido;GET /api/v1/pdv/contexto?numero=PDV-01;pdvId + caixaAberto retornados;200;;;Não;Postman > 02 PDV > Contexto;Pendente;
+PDV-02;PDV;Postman;Alta;PDV inexistente;Token válido;GET /api/v1/pdv/contexto?numero=PDV-99;Problem 404 pdv-nao-encontrado;404;pdv-nao-encontrado;PdvNaoEncontradoException;Não;Postman > 02 PDV > PDV Não Encontrado;Pendente;Refatoração mudanca_01
+CX-01;Caixa;Postman;Alta;Consultar caixa aberto;Caixa aberto PDV-01;GET /api/v1/caixa/aberto?pdvId={{pdvId}};CaixaModel com status ABERTO;200;;;Não;Postman > 03 Caixa;Pendente;
+CX-02;Caixa;Postman;Alta;Abrir caixa com PDV disponível;PDV fechado sem caixa aberto;POST /api/v1/caixa/abrir;caixaId criado PDV ABERTO;201;;;Não;Postman > 03 Caixa > Abrir;Pendente;Usa pdv.abrir() domínio
+CX-03;Caixa;Postman;Alta;Abrir caixa já aberto;Caixa já aberto no PDV;POST /api/v1/caixa/abrir mesmo PDV;Problem 409 caixa-ja-aberto;409;caixa-ja-aberto;CaixaJaAbertoException;Não;Postman > 03 Caixa > Caixa Já Aberto;Pendente;
+CX-04;Caixa;Postman;Alta;Fechar caixa aberto;Caixa aberto;POST /api/v1/caixa/fechar;Caixa FECHADO saldo calculado;200;;;Não;Postman > 03 Caixa > Fechar;Pendente;Usa caixa.fechar() pdv.fechar()
+CX-05;Caixa;Postman;Média;Fechar sem caixa aberto;PDV sem caixa;POST /api/v1/caixa/fechar;Problem 409 caixa-fechado;409;caixa-fechado;CaixaAbertoNaoEncontradoException;Não;Postman > 03 Caixa;Pendente;
+VND-01;Venda;Postman;Alta;Venda caminho feliz medicamento livre;Caixa aberto estoque OK;POST /api/v1/vendas item + pagamento;201 venda FINALIZADA cupom gerado;201;;;Não;Postman > 04 Venda > Venda Simples;Pendente;
+VND-02;Venda;Postman;Alta;Venda decrementa lote;Lote com saldo conhecido;POST venda 1 unidade;GET lotes saldo -1 status ESGOTADO se zero;201;;;Não;Postman + GET estoque/lotes;Pendente;lote.consumir()
+VND-03;Venda;Postman;Alta;Venda caixa fechado;Caixa fechado;POST /api/v1/vendas;Problem 409 caixa-fechado;409;caixa-fechado;CaixaFechadoException;Não;Postman > 04 Venda;Pendente;
+VND-04;Venda;Postman;Alta;Estoque insuficiente;Saldo menor que pedido;POST venda qtd alta;Problem 409 estoque-insuficiente;409;estoque-insuficiente;EstoqueInsuficienteException;Não;Postman > 04 Venda;Pendente;
+VND-05;Venda;Postman;Alta;Controlado sem CPF;Receita aprovada controlado;POST venda sem compradorCpf;Problem 400 cpf-obrigatorio;400;cpf-obrigatorio;CpfObrigatorioException;Não;Postman > 04 Venda;Pendente;
+VND-06;Venda;Postman;Alta;Preço acima PMC;PMC conhecido;POST preço > PMC;Problem 422 preco-acima-pmc;422;preco-acima-pmc;PrecoAcimaPMCException;Não;Postman > 04 Venda;Pendente;
+VND-07;Venda;Postman;Alta;Pagamento insuficiente;Total venda > pagamentos;POST pagamento parcial;Problem 422 pagamento-insuficiente;422;pagamento-insuficiente;PagamentoInsuficienteException;Não;Postman > 04 Venda;Pendente;
+VND-08;Venda;Postman;Alta;Receita marcada UTILIZADA;Receita APROVADA;POST venda com receitaId;GET receita status UTILIZADA;201;;;Não;Postman > 04 Venda;Pendente;receita.marcarComoUtilizada()
+VND-09;Venda;Postman;Média;Cancelar venda no dia;Venda finalizada hoje;DELETE /api/v1/vendas/{id};Estoque restaurado lote.restaurar();204;;;Não;Postman > 04 Venda > Cancelar;Pendente;
+VND-10;Venda;Postman;Média;Cancelar venda inválida;Venda antiga ou cancelada;DELETE /api/v1/vendas/{id};Problem 409 venda-nao-cancelavel;409;venda-nao-cancelavel;VendaNaoPodeCancelarException;Não;Postman > 04 Venda;Pendente;
+REC-01;Receituário;Postman;Alta;Cadastrar receita;Prescritor e cliente existem;POST /api/v1/receitas;201 status PENDENTE;201;;;Não;Postman > 05 Receita;Pendente;
+REC-02;Receituário;Postman;Alta;Número receita duplicado;Receita já cadastrada;POST mesmo numeroReceita;Problem 409 receita-duplicada;409;receita-duplicada;NumeroReceitaDuplicadoException;Não;Postman > 05 Receita;Pendente;
+REC-03;Receituário;Postman;Alta;Aprovar receita válida;Receita PENDENTE token farmacêutico;PUT /api/v1/receitas/{id}/validar itens OK;status APROVADA retida se Azul;200;;;Não;Postman > 05 Receita > Validar;Pendente;receita.aprovar()
+REC-04;Receituário;Postman;Alta;Rejeitar receita vencida;Receita emitida > validade;PUT validar;status REJEITADA motivo vencida;200;;;Não;Postman > 05 Receita;Pendente;receita.rejeitar()
+REC-05;Receituário;Postman;Alta;Validar sem ser farmacêutico;Token balconista;PUT validar;Problem 403 farmaceutico-nao-vinculado;403;farmaceutico-nao-vinculado;FarmaceuticoNaoVinculadoException;Não;Postman > 05 Receita;Pendente;Exceção saiu do controller
+REC-06;Receituário;Postman;Média;Buscar receita inexistente;UUID inválido;GET /api/v1/receitas/{id};Problem 404 receita-nao-encontrada;404;receita-nao-encontrada;ReceitaNaoEncontradaException;Não;Postman > 05 Receita;Pendente;
+EST-01;Estoque;Postman;Alta;Entrada estoque;Medicamento cadastrado;POST /api/v1/estoque/entrada;item e lote incrementados;201;;;Não;Postman > 06 Estoque > Entrada;Pendente;lote.registrarEntradaAdicional()
+EST-02;Estoque;Postman;Alta;Ajuste positivo;Lote ativo;POST /api/v1/estoque/ajuste AJUSTE_POSITIVO;Saldo incrementado;201;;;Não;Postman > 06 Estoque > Ajuste +;Pendente;lote.incrementarSaldo()
+EST-03;Estoque;Postman;Alta;Ajuste negativo sem saldo;Saldo insuficiente;POST ajuste negativo qtd alta;Problem 422 estoque-insuficiente;422;estoque-insuficiente;SaldoLoteInsuficienteException;Não;Postman > 06 Estoque;Pendente;
+EST-04;Estoque;Postman;Alta;Ajuste sem motivo;—;POST ajuste motivo vazio;Problem 422 estoque-invalido;422;estoque-invalido;MotivoObrigatorioException;Não;Postman > 06 Estoque;Pendente;
+EST-05;Estoque;Postman;Média;Entrada lote vencido;dataValidade passada;POST entrada;Problem 422 estoque-invalido;422;estoque-invalido;LoteVencidoException;Não;Postman > 06 Estoque;Pendente;
+EST-06;Estoque;Postman;Média;Atualizar limites mín/máx;Item estoque existe;PUT /api/v1/estoque/medicamentos/{id}/parametros;Limites atualizados;200;;;Não;Postman > 06 Estoque;Pendente;item.atualizarLimites()
+EST-07;Estoque;Postman;Média;Consultar estoque inexistente;Medicamento sem item;GET /api/v1/estoque/medicamentos/{id};Problem 404 estoque-nao-encontrado;404;estoque-nao-encontrado;ItemEstoqueNaoEncontradoException;Não;Postman > 06 Estoque;Pendente;
+CLI-01;Cliente;Postman;Alta;Cadastrar cliente válido;Token balconista;POST /api/v1/clientes;201 cliente criado;201;;;Não;Postman > 07 Cliente;Pendente;
+CLI-02;Cliente;Postman;Alta;CPF duplicado;Cliente mesmo CPF existe;POST /api/v1/clientes;Problem 409 cpf-duplicado;409;cpf-duplicado;CpfClienteDuplicadoException;Não;Postman > 07 Cliente;Pendente;
+CLI-03;Cliente;Postman;Alta;Telefone duplicado;Telefone já usado;POST ou PUT telefone existente;Problem 409 telefone-duplicado;409;telefone-duplicado;TelefoneClienteDuplicadoException;Não;Postman > 07 Cliente;Pendente;
+CLI-04;Cliente;Postman;Média;E-mail duplicado;Email já usado;POST ou PUT;Problem 409 email-duplicado;409;email-duplicado;EmailClienteDuplicadoException;Não;Postman > 07 Cliente;Pendente;
+CLI-05;Cliente;Postman;Média;Atualizar cliente;Cliente existente;PUT /api/v1/clientes/{id};Dados atualizados;200;;;Não;Postman > 07 Cliente;Pendente;cliente.atualizar()
+CLI-06;Cliente;Postman;Baixa;Contato disponível;—;GET /api/v1/clientes/contato/disponivel;telefoneDisponivel/emailDisponivel;200;;;Não;Postman > 07 Cliente;Pendente;
+CMP-01;Compras;Postman;Média;Cadastrar fornecedor;—;POST /api/v1/fornecedores;201 criado;201;;;Não;Postman > 08 Compras;Pendente;
+CMP-02;Compras;Postman;Média;CNPJ duplicado;Fornecedor existe;POST mesmo CNPJ;Problem 409 cnpj-duplicado;409;cnpj-duplicado;CnpjDuplicadoException;Não;Postman > 08 Compras;Pendente;
+CMP-03;Compras;Postman;Média;Criar pedido compra;Fornecedor + itens;POST /api/v1/compras/pedidos;201 RASCUNHO;201;;;Não;Postman > 08 Compras;Pendente;
+CMP-04;Compras;Postman;Média;Confirmar pedido;Pedido RASCUNHO;PUT /api/v1/compras/pedidos/{id}/confirmar;CONFIRMADO;200;;;Não;Postman > 08 Compras;Pendente;pedido.confirmar()
+CMP-05;Compras;Postman;Média;NF-e chave duplicada;Nota já registrada;POST /api/v1/compras/notas;Problem 409 nfe-duplicada;409;nfe-duplicada;ChaveDuplicadaException;Não;Postman > 08 Compras;Pendente;
+MED-01;Medicamento;Postman;Média;Buscar medicamento inexistente;UUID inválido;GET /api/v1/medicamentos/{id};Problem 404 medicamento-nao-encontrado;404;medicamento-nao-encontrado;MedicamentoNaoEncontradoException;Não;Postman > 09 Medicamento;Pendente;
+MED-02;Medicamento;Postman;Baixa;Medicamento duplicado EAN;EAN já cadastrado;POST medicamento;Problem 409 medicamento-duplicado;409;medicamento-duplicado;MedicamentoDuplicadoException;Não;Postman > 09 Medicamento;Pendente;
+CUC-01;Venda Controlado;Cucumber;Alta;Venda bem-sucedida receita Azul;Seed BDD @controlado;Executar feature cenário 1;Venda OK estoque -1 receita UTILIZADA SNGPC;—;;;Sim;mvn test -Dtest=CucumberRunnerIT -Dcucumber.filter.tags=@controlado;Pendente;venda_medicamento_controlado.feature
+CUC-02;Venda Controlado;Cucumber;Alta;Receita vencida rejeitada;Seed BDD;Cenário 2 feature;Rejeitada msg vencida estoque intacto;—;;;Sim;idem CUC-01;Pendente;
+CUC-03;Venda Controlado;Cucumber;Alta;Tipo receita errado C1;Seed BDD;Cenário 3;Rejeitada exige AZUL;—;;;Sim;idem CUC-01;Pendente;
+CUC-04;Venda Controlado;Cucumber;Alta;CPF obrigatório;Receita aprovada;Cenário 4;Venda recusada CPF;—;;;Sim;idem CUC-01;Pendente;
+CUC-05;Venda Controlado;Cucumber;Alta;Preço acima PMC;Cenário 5;When preço > PMC;Recusada PMC;—;;;Sim;idem CUC-01;Pendente;
+CUC-06;Venda Controlado;Cucumber;Alta;Qtd acima Portaria 344;Cenário 6;Validar receita 5 un;Rejeitada max 2;—;;;Sim;idem CUC-01;Pendente;
+CUC-07;Venda Controlado;Cucumber;Alta;Estoque insuficiente;Cenário 7;Vender 3 com saldo 2;Recusada estoque;—;;;Sim;idem CUC-01;Pendente;
+CUC-08;Venda Controlado;Cucumber;Alta;Seleção FEFO;2 lotes;Cenário 8;Desconta lote mais próximo vencimento;—;;;Sim;idem CUC-01;Pendente;
+CUC-09;Venda Controlado;Cucumber;Média;Aviso lote vencendo;Lote 10 dias;Cenário 9;Venda OK + aviso;—;;;Sim;idem CUC-01;Pendente;
+CUC-10;Alertas Estoque;Cucumber;Alta;Lote vencido bloqueado;Lote validade ontem;Cenário 1 @alertas;Status VENCIDO saldo 0 alerta;—;;;Sim;mvn test -Dcucumber.filter.tags=@alertas;Pendente;lote.bloquearPorVencimento()
+CUC-11;Alertas Estoque;Cucumber;Alta;Alerta crítico 30 dias;Lote 15 dias;Cenário 2;Alerta CRÍTICO ABERTO;—;;;Sim;idem CUC-10;Pendente;
+CUC-12;Alertas Estoque;Cucumber;Média;Alerta atenção 60 dias;Lote 45 dias;Cenário 3;Alerta ATENÇÃO;—;;;Sim;idem CUC-10;Pendente;
+CUC-13;Alertas Estoque;Cucumber;Média;Sem alerta duplicado;Alerta já aberto;Cenário 4;Nenhum novo alerta;—;;;Sim;idem CUC-10;Pendente;
+CUC-14;Alertas Estoque;Cucumber;Média;Estoque mínimo;Saldo 3 mín 10;Cenário 5;Alerta ESTOQUE_MINIMO;—;;;Sim;idem CUC-10;Pendente;
+CUC-15;Alertas Estoque;Cucumber;Média;Estoque zerado;Saldo 0;Cenário 6;Alerta ESTOQUE_ZERADO;—;;;Sim;idem CUC-10;Pendente;
+UNIT-01;Validar Receita;JUnit;Alta;Testes unitários ValidarReceitaUseCase;—;mvn test ValidarReceitaUseCaseTest;Todos passam;—;;;Sim;mvn test -Dtest=ValidarReceitaUseCaseTest;Pendente;Exceções domínio
+UNIT-02;Medicamento WebMvc;JUnit;Média;Controller medicamento 404;Mock use case;MedicamentoControllerWebMvcTest;404 Problem;—;;;Sim;mvn test -Dtest=MedicamentoControllerWebMvcTest;Pendente;
+REG-01;Regressão;Maven;Alta;Suite completa API;—;mvn test -pl farmacia-api -am;BUILD SUCCESS;—;;;Sim;README.md;Pendente;Executar após cada deploy
+DOM-01;Domínio;Verificação;Alta;Zero @Setter no domain;—;rg @Setter farmacia-domain/src/main;Nenhum resultado;—;;;Sim;Terminal;Pendente;mudanca_01
+DOM-02;Domínio;Verificação;Alta;Zero inner exception application;—;rg static class.*Exception farmacia-application;Nenhum resultado;—;;;Sim;Terminal;Pendente;mudanca_01
+DOM-03;Domínio;Verificação;Alta;Zero inner exception controllers;—;rg static class.*Exception farmacia-api/src/main;Nenhum resultado;—;;;Sim;Terminal;Pendente;mudanca_01

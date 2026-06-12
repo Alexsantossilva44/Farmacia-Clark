@@ -1,0 +1,187 @@
+## ============================================================
+## Sistema Farmacêutico — application.yml
+## Author/Orquestrador: Alex Silva e Claude
+## ============================================================
+
+spring:
+  application:
+    name: sistema-farmaceutico
+
+  profiles:
+    active: dev
+
+  ## ── JPA ─────────────────────────────────────────────────
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  ## ── Flyway ──────────────────────────────────────────────
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+  ## ── Cache ───────────────────────────────────────────────
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500,expireAfterAccess=600s
+
+  ## ── Jackson ─────────────────────────────────────────────
+  jackson:
+    default-property-inclusion: NON_NULL
+    deserialization:
+      fail-on-unknown-properties: false
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/Sao_Paulo
+
+  ## ── Mensagens de validação ───────────────────────────────
+  messages:
+    basename: messages/messages
+    encoding: UTF-8
+
+## ── Actuator ──────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: Farmácia Clark
+    version: "@project.version@"
+    description: "DDD + Hexagonal | Java 21 | Spring Boot 3.5"
+    authors: "Alex Silva e Claude"
+
+## ── SpringDoc / Swagger UI ────────────────────────────────
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    try-it-out-enabled: true
+  show-actuator: false
+
+## ── Logging ──────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    br.com.farmacia: DEBUG
+    org.springframework.security: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/farmacia.log
+
+---
+## ── Perfil: dev ──────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/farmacia_dev
+    username: farmacia
+    password: farmacia123
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    show-sql: true
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
+app:
+  security:
+    jwt:
+      private-key-location: classpath:jwt/dev-private.pem
+      public-key-location: classpath:jwt/dev-public.pem
+    swagger-public: true
+  api:
+    base-url: http://localhost:8080
+  cors:
+    allowed-origin-patterns: "http://localhost:*,http://127.0.0.1:*"
+
+---
+## ── Perfil: prod ─────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    show-sql: false
+
+  rabbitmq:
+    host: ${RABBIT_HOST}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USERNAME}
+    password: ${RABBIT_PASSWORD}
+
+app:
+  security:
+    jwt:
+      private-key: ${JWT_PRIVATE_KEY:}
+      public-key: ${JWT_PUBLIC_KEY:}
+      private-key-location: ${JWT_PRIVATE_KEY_LOCATION:}
+      public-key-location: ${JWT_PUBLIC_KEY_LOCATION:}
+    swagger-public: false
+  api:
+    base-url: ${API_BASE_URL}
+  cors:
+    allowed-origin-patterns: ${CORS_ORIGINS:http://localhost}
+  bootstrap:
+    admin-email: ${APP_BOOTSTRAP_ADMIN_EMAIL:}
+    admin-password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-nome: ${APP_BOOTSTRAP_ADMIN_NOME:Administrador Farmácia Clark}
+
+logging:
+  level:
+    root: INFO
+    br.com.farmacia: INFO
+    org.springframework.security: WARN
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

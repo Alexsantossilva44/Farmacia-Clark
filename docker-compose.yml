@@ -1,0 +1,93 @@
+## ============================================================
+## Sistema Farmacêutico — Docker Compose (Desenvolvimento)
+## Author/Orquestrador: Alex Silva e Claude
+##
+## Uso:
+##   docker compose up -d        → sobe todos os serviços
+##   docker compose down -v      → para e remove volumes
+##   docker compose logs -f      → acompanha logs em tempo real
+##   docker compose ps           → status dos containers
+## ============================================================
+
+services:
+
+  ## ── PostgreSQL ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: farmacia-postgres
+    environment:
+      POSTGRES_DB: farmacia_dev
+      POSTGRES_USER: farmacia
+      POSTGRES_PASSWORD: farmacia123
+    ports:
+      - "5433:5432"       # 5433 no host → evita conflito com PostgreSQL local
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farmacia -d farmacia_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - farmacia-net
+
+  ## ── RabbitMQ ────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: farmacia-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI → http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - farmacia-net
+
+  ## ── Redis (Cache) ───────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: farmacia-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass farmacia_redis_2024
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "farmacia_redis_2024", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - farmacia-net
+
+  ## ── pgAdmin (Gerenciamento visual do banco) ─────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: farmacia-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@farmacia.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"       # → http://localhost:5050
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - farmacia-net
+
+volumes:
+  postgres_data:
+    name: farmacia_postgres_data
+  rabbitmq_data:
+    name: farmacia_rabbitmq_data
+
+networks:
+  farmacia-net:
+    name: farmacia-network
+    driver: bridge
