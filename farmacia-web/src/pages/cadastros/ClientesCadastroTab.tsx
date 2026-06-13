@@ -438,36 +438,36 @@ export function ClientesCadastroTab() {
     return false
   }
 
-  async function confirmarTelefone(): Promise<boolean> {
+  async function confirmarTelefone(refocar = false): Promise<boolean> {
     const telefoneErr = validarTelefone(form.telefone ?? '', true)
     if (telefoneErr) {
       marcarCampoTocado('telefone')
       setFieldErrors((prev) => ({ ...prev, telefone: telefoneErr }))
-      focarCampo(telefoneInputRef)
+      if (refocar) focarCampo(telefoneInputRef)
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, undefined)
     if (contato.telefoneEmUso) {
-      focarCampo(telefoneInputRef)
+      if (refocar) focarCampo(telefoneInputRef)
       return false
     }
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
     return true
   }
 
-  async function confirmarEmail(): Promise<boolean> {
+  async function confirmarEmail(refocar = false): Promise<boolean> {
     const email = sanitizeEmailInput(form.email ?? '')
     setForm((prev) => (prev.email === email ? prev : { ...prev, email }))
     const emailErr = validarEmail(email, true)
     if (emailErr) {
       marcarCampoTocado('email')
       setFieldErrors((prev) => ({ ...prev, email: emailErr }))
-      focarCampo(emailInputRef)
+      if (refocar) focarCampo(emailInputRef)
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, email)
     if (contato.emailEmUso) {
-      focarCampo(emailInputRef)
+      if (refocar) focarCampo(emailInputRef)
       return false
     }
     setFieldErrors((prev) => ({ ...prev, email: undefined }))
@@ -764,9 +764,9 @@ export function ClientesCadastroTab() {
   const proximosCamposBloqueados = cpfImpedeProximosCampos()
 
   return (
-    <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 lg:gap-5">
+    <div className="h-full min-h-0 min-w-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_240px] gap-5 lg:gap-6">
       {/* ── Coluna esquerda: formulário vertical ── */}
-      <Card className="flex flex-col min-h-0 overflow-hidden p-4 sm:p-5 lg:p-6 order-2 lg:order-1">
+      <Card className="flex flex-col min-h-0 min-w-0 p-5 sm:p-6 lg:px-8 lg:py-6 order-2 xl:order-1">
         <div className="shrink-0 flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
           <div>
             <h2 className="font-semibold text-base sm:text-lg">
@@ -786,7 +786,7 @@ export function ClientesCadastroTab() {
           key={formKey}
           autoComplete="off"
           noValidate
-          className="form-sem-autofill flex flex-1 flex-col min-h-0"
+          className="form-sem-autofill relative flex flex-1 flex-col min-h-0 min-w-0"
           onSubmit={(e) => e.preventDefault()}
           onFocusCapture={liberarCamposDoFormulario}
           onMouseDown={liberarCamposDoFormulario}
@@ -799,8 +799,8 @@ export function ClientesCadastroTab() {
             <input tabIndex={-1} type="password" autoComplete="current-password" name="prevent_autofill_pw" />
           </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1 space-y-5">
-          <section>
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain space-y-5 pr-0.5">
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Dados pessoais
             </h3>
@@ -834,7 +834,7 @@ export function ClientesCadastroTab() {
                 maxLength={100} // alinhado a clientes.nome VARCHAR(100) e @Size(max=100) na API
                 className={inputCompact}
               />
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(11rem,1.3fr)_minmax(8rem,1fr)_minmax(8rem,0.9fr)] gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">
                 <Input
                   ref={cpfInputRef}
                   label="CPF *"
@@ -956,9 +956,9 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Contato</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)] gap-2.5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0">
               <Input
                 ref={telefoneInputRef}
                 label="Telefone / WhatsApp *"
@@ -967,15 +967,6 @@ export function ClientesCadastroTab() {
                 readOnly={readOnlyAntiAutofill}
                 inputMode="numeric"
                 value={formatTelefoneDisplay(form.telefone ?? '')}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === 'Tab'
-                    && !e.shiftKey
-                    && (telefoneEmUso || fieldErrors.telefone === MSG_TELEFONE_DUPLICADO)
-                  ) {
-                    e.preventDefault()
-                  }
-                }}
                 onChange={(e) => {
                   const telefone = onlyDigits(e.target.value).slice(0, 11)
                   setTelefoneEmUso(false)
@@ -1007,16 +998,9 @@ export function ClientesCadastroTab() {
                 value={sanitizeEmailInput(form.email ?? '')}
                 onKeyDown={(e) => {
                   if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault()
-                  if (
-                    e.key === 'Tab'
-                    && !e.shiftKey
-                    && (emailEmUso || fieldErrors.email === MSG_EMAIL_DUPLICADO || verificandoContato)
-                  ) {
-                    e.preventDefault()
-                  }
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    void confirmarEmail()
+                    void confirmarEmail(true)
                   }
                 }}
                 onPaste={(e) => {
@@ -1061,10 +1045,10 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Endereço</h3>
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2.5">
+            <div className="space-y-2.5 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_100px] gap-2.5 min-w-0">
                 <Input
                   label="Logradouro *"
                   name="farmacia_logradouro"
@@ -1102,7 +1086,7 @@ export function ClientesCadastroTab() {
                   className={inputCompact}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(7.5rem,9rem)] gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,9rem)] gap-2.5 min-w-0">
                 <Input
                   label="Complemento"
                   name="farmacia_complemento"
@@ -1169,7 +1153,7 @@ export function ClientesCadastroTab() {
                 />
               </div>
               {/* UF antes da cidade: ao trocar UF, cidade incompatível é limpa e revalidada. */}
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(4.5rem,5.5rem)_minmax(0,1fr)] gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,5.5rem)_minmax(0,1fr)] gap-2.5 min-w-0">
                 <Select
                   label="UF *"
                   value={form.endereco?.uf ?? ''}
@@ -1228,11 +1212,11 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Informações clínicas
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 min-w-0">
               <div>
                 <label className="block text-xs font-medium text-[#8b9cb3] mb-1.5">
                   Alergias
@@ -1293,7 +1277,7 @@ export function ClientesCadastroTab() {
       </Card>
 
       {/* ── Coluna direita: busca compacta + resumo ── */}
-      <aside className="flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:max-w-[300px]">
+      <aside className="flex flex-col gap-3 min-h-0 order-1 xl:order-2 xl:w-[240px] xl:shrink-0">
         <Card className="p-4 shrink-0">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <Search className="size-4 text-mint" />

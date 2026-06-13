@@ -128,7 +128,7 @@ export function Select({
     : null
 
   return (
-    <div className="space-y-1.5" ref={rootRef}>
+    <div className="min-w-0 space-y-1.5" ref={rootRef}>
       {label && (
         <label className="block text-xs sm:text-sm font-medium text-[#8b9cb3]">{label}</label>
       )}
