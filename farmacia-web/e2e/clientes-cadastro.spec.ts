@@ -177,6 +177,14 @@ test.describe('Cadastro de clientes — validações corrigidas', () => {
     await expect(mail).toHaveValue('teste@email.com')
   })
 
+  test('FRONT-09: e-mail fora do formato universal exibe erro no campo', async ({ page }) => {
+    const mail = page.getByLabel('E-mail')
+
+    await mail.fill('helena@gmail.com.jknknnklnlknlkmnkl2156561')
+    await mail.blur()
+    await expect(page.getByText(/E-mail inválido/i)).toBeVisible()
+  })
+
   test('FRONT-08: trocar CPF na busca limpa telefone e e-mail do cliente anterior', async ({
     page,
     request,

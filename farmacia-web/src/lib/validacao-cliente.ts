@@ -156,6 +156,26 @@ export function sanitizeEmailInput(value: string): string {
   return value.replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]+/g, '')
 }
 
+/**
+ * Formato universal simplificado (RFC 5321): rótulos de domínio + TLD só letras (2–63).
+ * A regex antiga aceitava falsos positivos, ex.: helena@gmail.com.lixo...1 (TLD numérico).
+ */
+const EMAIL_FORMATO_UNIVERSAL =
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,63}$/
+
+function emailFormatoUniversalValido(email: string): boolean {
+  if (email.length > 254) return false // RFC 5321 — tamanho máximo do endereço
+  if (!EMAIL_FORMATO_UNIVERSAL.test(email)) return false
+  const at = email.indexOf('@')
+  if (at < 1) return false
+  const local = email.slice(0, at)
+  const domain = email.slice(at + 1)
+  // Pontos consecutivos ou nas extremidades invalidam o endereço.
+  if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false
+  if (domain.startsWith('.') || domain.endsWith('.') || domain.includes('..')) return false
+  return true
+}
+
 export function validarEmail(email: string, obrigatorio = false): string | null {
   if (!email.trim()) {
     return obrigatorio ? 'E-mail é obrigatório.' : null
@@ -164,7 +184,8 @@ export function validarEmail(email: string, obrigatorio = false): string | null 
     return 'E-mail não pode conter espaços.'
   }
   const normalizado = email.trim().toLowerCase()
-  if (!/^[\w.+-]+@[\w.-]+\.[\w.-]+$/.test(normalizado)) {
+  // Alteração: validação estrita de formato universal (TLD alfabético; domínio sem lixo após .com).
+  if (!emailFormatoUniversalValido(normalizado)) {
     return 'E-mail inválido.'
   }
   return null

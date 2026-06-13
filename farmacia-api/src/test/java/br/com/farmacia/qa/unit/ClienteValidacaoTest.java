@@ -163,4 +163,20 @@ class ClienteValidacaoTest {
             .isInstanceOf(ClienteDadosInvalidosException.class)
             .hasMessageContaining("E-mail");
     }
+
+    @Test
+    @DisplayName("rejeita e-mail com domínio e TLD fora do formato universal")
+    void rejeita_email_dominio_invalido() {
+        assertThatThrownBy(() -> ClienteValidacao.validarEmail(
+            "helena@gmail.com.jknknnklnlknlkmnkl2156561"))
+            .isInstanceOf(ClienteDadosInvalidosException.class)
+            .hasMessageContaining("E-mail inválido");
+    }
+
+    @Test
+    @DisplayName("aceita e-mail em formato universal válido")
+    void aceita_email_valido() {
+        assertThatCode(() -> ClienteValidacao.validarEmail("helena@gmail.com"))
+            .doesNotThrowAnyException();
+    }
 }

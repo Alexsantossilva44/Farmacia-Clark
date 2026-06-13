@@ -23,8 +23,9 @@ public final class ClienteValidacao {
     private static final Pattern NOME_PESSOA = Pattern.compile(
         "^[\\p{L}]+(?:-[\\p{L}]+)*(?: [\\p{L}]+(?:-[\\p{L}]+)*)+$");
 
+    // Alteração: regex alinhada ao front — TLD só letras (2-63); rejeita ex.: gmail.com.lixo...1.
     private static final Pattern EMAIL = Pattern.compile(
-        "^[\\w.+-]+@[\\w.-]+\\.[\\w.-]+$");
+        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\\.[a-zA-Z]{2,63}$");
 
     private static final LocalDate DATA_MINIMA = LocalDate.of(1900, 1, 1);
 
@@ -128,9 +129,31 @@ public final class ClienteValidacao {
             throw new ClienteDadosInvalidosException("E-mail não pode conter espaços.");
         }
         String normalizado = normalizarEmail(email);
-        if (!EMAIL.matcher(normalizado).matches()) {
+        // Alteração: mesmas regras do front — formato universal com TLD alfabético.
+        if (!emailFormatoUniversalValido(normalizado)) {
             throw new ClienteDadosInvalidosException("E-mail inválido.");
         }
+    }
+
+    /** RFC 5321 simplificado: rótulos de domínio válidos e TLD apenas letras (2–63). */
+    private static boolean emailFormatoUniversalValido(String email) {
+        if (email.length() > 254) {
+            return false;
+        }
+        if (!EMAIL.matcher(email).matches()) {
+            return false;
+        }
+        int at = email.indexOf('@');
+        if (at < 1) {
+            return false;
+        }
+        String local = email.substring(0, at);
+        String domain = email.substring(at + 1);
+        // Pontos consecutivos ou nas extremidades invalidam o endereço.
+        if (local.startsWith(".") || local.endsWith(".") || local.contains("..")) {
+            return false;
+        }
+        return !domain.startsWith(".") && !domain.endsWith(".") && !domain.contains("..");
     }
 
     public static void validarEmailObrigatorio(String email) {
@@ -149,6 +172,17 @@ public final class ClienteValidacao {
     public static void validarEnderecoObrigatorio(EnderecoVO endereco) {
         if (endereco == null || endereco.getLogradouro() == null || endereco.getLogradouro().isBlank()) {
             throw new ClienteDadosInvalidosException("Logradouro é obrigatório.");
+        }
+        String numero = endereco.getNumero();
+        if (numero != null && !numero.isBlank()) {
+            if (!numero.matches("[a-zA-Z0-9]{1,8}")) {
+                throw new ClienteDadosInvalidosException(
+                    "Apenas letras e dígitos, máximo 8 caracteres.");
+            }
+            if (!numero.matches(".*\\d.*")) {
+                throw new ClienteDadosInvalidosException(
+                    "Conter pelo menos um dígito (ex: 123, 45A).");
+            }
         }
         if (endereco.getBairro() == null || endereco.getBairro().isBlank()) {
             throw new ClienteDadosInvalidosException("Bairro é obrigatório.");
