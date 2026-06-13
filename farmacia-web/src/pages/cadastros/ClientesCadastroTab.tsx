@@ -233,6 +233,7 @@ export function ClientesCadastroTab() {
   const [cpfTravandoFoco, setCpfTravandoFoco] = useState(false)
   const [dataNascimentoTravandoFoco, setDataNascimentoTravandoFoco] = useState(false)
   const [numeroTravandoFoco, setNumeroTravandoFoco] = useState(false)
+  const [telefoneTravandoFoco, setTelefoneTravandoFoco] = useState(false)
   const [telefoneEmUso, setTelefoneEmUso] = useState(false)
   const [emailEmUso, setEmailEmUso] = useState(false)
   const [verificandoCpf, setVerificandoCpf] = useState(false)
@@ -250,6 +251,7 @@ export function ClientesCadastroTab() {
   const emailResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dataNascimentoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const numeroResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const telefoneResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cpfValidacaoRef = useRef(0)
 
   const isEdicao = clienteId !== null
@@ -263,6 +265,7 @@ export function ClientesCadastroTab() {
     if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
     if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
     if (numeroResetTimerRef.current) clearTimeout(numeroResetTimerRef.current)
+    if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
   }, [])
 
   useEffect(() => {
@@ -329,6 +332,7 @@ export function ClientesCadastroTab() {
     cancelarLimpezaEmailAgendada()
     cancelarLimpezaDataNascimentoAgendada()
     cancelarLimpezaNumeroAgendada()
+    cancelarLimpezaTelefoneAgendada()
     setCamposTocados({})
     setFieldErrors({})
   }
@@ -422,6 +426,36 @@ export function ClientesCadastroTab() {
     emailResetTimerRef.current = setTimeout(() => {
       emailResetTimerRef.current = null
       limparEmailParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
+  }
+
+  function cancelarLimpezaTelefoneAgendada() {
+    if (telefoneResetTimerRef.current) {
+      clearTimeout(telefoneResetTimerRef.current)
+      telefoneResetTimerRef.current = null
+    }
+    setTelefoneTravandoFoco(false)
+  }
+
+  function limparTelefoneParaNovaEntrada() {
+    setTelefoneEmUso(false)
+    setForm((prev) => ({ ...prev, telefone: '' }))
+    setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
+    setCamposTocados((prev) => {
+      const { telefone: _t, ...rest } = prev
+      return rest
+    })
+    setTelefoneTravandoFoco(false)
+    focarCampo(telefoneInputRef)
+  }
+
+  function agendarLimpezaTelefoneAposErro() {
+    cancelarLimpezaTelefoneAgendada()
+    setTelefoneTravandoFoco(true)
+    focarCampo(telefoneInputRef)
+    telefoneResetTimerRef.current = setTimeout(() => {
+      telefoneResetTimerRef.current = null
+      limparTelefoneParaNovaEntrada()
     }, CPF_RESET_DELAY_MS)
   }
 
@@ -538,6 +572,27 @@ export function ClientesCadastroTab() {
     })
   }
 
+  function focoDirecionado(): boolean {
+    return cpfTravandoFoco || dataNascimentoTravandoFoco || numeroTravandoFoco || telefoneTravandoFoco
+  }
+
+  function formularioPronto(): boolean {
+    const e = form.endereco
+    return (
+      form.nome.trim().length > 0
+      && onlyDigits(form.cpf).length === 11
+      && (form.dataNascimento ?? '').trim().length > 0
+      && (form.sexo ?? '').trim().length > 0
+      && onlyDigits(form.telefone ?? '').length >= 10
+      && (form.email ?? '').trim().length > 0
+      && (e?.logradouro ?? '').trim().length > 0
+      && (e?.bairro ?? '').trim().length > 0
+      && onlyDigits(e?.cep ?? '').length === 8
+      && (e?.uf ?? '').trim().length > 0
+      && (e?.cidade ?? '').trim().length > 0
+    )
+  }
+
   function cpfBloqueado(): boolean {
     return cpfEmUso || fieldErrors.cpf === MSG_CPF_DUPLICADO
   }
@@ -557,12 +612,12 @@ export function ClientesCadastroTab() {
     if (telefoneErr) {
       marcarCampoTocado('telefone')
       setFieldErrors((prev) => ({ ...prev, telefone: telefoneErr }))
-      if (refocar) focarCampo(telefoneInputRef)
+      agendarLimpezaTelefoneAposErro()
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, undefined)
     if (contato.telefoneEmUso) {
-      if (refocar) focarCampo(telefoneInputRef)
+      agendarLimpezaTelefoneAposErro()
       return false
     }
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
@@ -921,6 +976,9 @@ export function ClientesCadastroTab() {
             } else if (numeroTravandoFoco && e.target !== numeroInputRef.current) {
               e.preventDefault()
               focarCampo(numeroInputRef)
+            } else if (telefoneTravandoFoco && e.target !== telefoneInputRef.current) {
+              e.preventDefault()
+              focarCampo(telefoneInputRef)
             }
           }}
           onMouseDown={liberarCamposDoFormulario}
@@ -957,6 +1015,7 @@ export function ClientesCadastroTab() {
                   }
                 }}
                 onBlur={() => {
+                  if (focoDirecionado()) return
                   marcarCampoTocado('nome')
                   setFieldErrors((prev) => ({
                     ...prev,
@@ -1023,7 +1082,10 @@ export function ClientesCadastroTab() {
                     marcarCampoTocado('cpf')
                     const cpfErr = validarCpf(form.cpf)
                     setFieldErrors((prev) => ({ ...prev, cpf: cpfErr ?? undefined }))
-                    if (cpfErr) limparErrosCamposAdjacentesAoCpf()
+                    if (cpfErr) {
+                      limparErrosCamposAdjacentesAoCpf()
+                      agendarLimpezaCpfAposErro()
+                    }
                   }}
                   error={erroCampo('cpf')}
                   disabled={isEdicao}
@@ -1060,7 +1122,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
-                    if (proximosCamposBloqueados) return
+                    if (focoDirecionado() || proximosCamposBloqueados) return
                     marcarCampoTocado('dataNascimento')
                     const err = erroDataNascimento() ?? undefined
                     setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
@@ -1084,7 +1146,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
-                    if (proximosCamposBloqueados) return
+                    if (focoDirecionado() || proximosCamposBloqueados) return
                     marcarCampoTocado('sexo')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1123,7 +1185,8 @@ export function ClientesCadastroTab() {
                   }))
                 }}
                 onBlur={() => {
-                  marcarCampoTocado('telefone')
+                  if (focoDirecionado()) return
+                  cancelarLimpezaTelefoneAgendada()
                   void confirmarTelefone()
                 }}
                 error={erroCampo('telefone')}
@@ -1183,6 +1246,7 @@ export function ClientesCadastroTab() {
                   }
                 }}
                 onBlur={() => {
+                  if (focoDirecionado()) return
                   marcarCampoTocado('email')
                   void confirmarEmail()
                 }}
@@ -1214,6 +1278,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
+                    if (focoDirecionado()) return
                     marcarCampoTocado('logradouro')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1258,6 +1323,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
+                    if (focoDirecionado()) return
                     marcarCampoTocado('numero')
                     const numero = form.endereco?.numero ?? ''
                     const err = numero && !/\d/.test(numero)
@@ -1299,6 +1365,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
+                    if (focoDirecionado()) return
                     marcarCampoTocado('bairro')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1325,6 +1392,7 @@ export function ClientesCadastroTab() {
                     }
                   }}
                   onBlur={() => {
+                    if (focoDirecionado()) return
                     marcarCampoTocado('cep')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1364,6 +1432,7 @@ export function ClientesCadastroTab() {
                     }))
                   }}
                   onBlur={() => {
+                    if (focoDirecionado()) return
                     marcarCampoTocado('uf')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1452,7 +1521,7 @@ export function ClientesCadastroTab() {
             <Button
               type="button"
               loading={salvando}
-              disabled={salvando || cpfEmUso}
+              disabled={salvando || !formularioPronto()}
               onClick={tentarCadastro}
             >
               Cadastrar cliente

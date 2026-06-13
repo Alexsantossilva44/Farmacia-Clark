@@ -71,11 +71,11 @@ CADASTRO DE CLIENTES — PR #1
 | **C-02** | CPF | Digitar CPF duplicado já cadastrado — aguardar limpeza automática após 3s | ✅ PASSOU | Nenhum | — |
 | **C-03** | CPF | Digitar CPF válido não cadastrado — campos de data e sexo desbloqueiam | ✅ PASSOU | Nenhum | — |
 | **C-04** | CPF | Com CPF inválido ou duplicado: cursor deve ficar impossibilitado de ir para qualquer outro campo | ✅ PASSOU | Nenhum | — |
-| **C-05** | CPF | Com CPF duplicado: data de nascimento e sexo devem permanecer bloqueados | | | |
+| **C-05** | CPF | Com CPF duplicado: data de nascimento e sexo devem permanecer bloqueados | ✅ PASSOU | Nenhum | — |
 | **D-08** | Data Nasc. | Data inválida (menor de 18 anos / futura): cursor seguia para o próximo campo sem bloquear | ✅ CORRIGIDO | Implementado timer de 3s + limpeza do campo + travamento de foco, igual ao padrão CPF | 🟠 Alta |
 | **D-09** | Data Nasc. | Enter com data inválida exibia mensagem "Sexo é obrigatório" antes de bloquear o cursor | ✅ CORRIGIDO | `onKeyDown` agora verifica o erro diretamente (sem depender do estado) e chama `e.preventDefault()` + timer imediatamente | 🟡 Média |
-| **C-06** | CPF | Após limpeza automática: campo CPF deve aceitar nova digitação | | | |
-| **C-07** | CPF | Digitar CPF com menos de 11 dígitos e sair do campo — não deve disparar validação | | | |
+| **C-06** | CPF | Após limpeza automática: campo CPF deve aceitar nova digitação | ✅ PASSOU | Nenhum | — |
+| **C-07** | CPF | Digitar CPF com menos de 11 dígitos e sair do campo — deve exibir erro, aguardar 3s, limpar e travar foco | ✅ CORRIGIDO | Erro era exibido mas o timer de 3s não era acionado e outros campos exibiam erros falsos ao receber foco; corrigido com `agendarLimpezaCpfAposErro()` no `onBlur` e `focoDirecionado()` guard em todos os campos | 🟠 Alta |
 | **T-01** | Telefone | Telefone com menos de 10 dígitos → erro ao sair do campo (onBlur) | | | |
 | **T-02** | Telefone | Telefone já cadastrado → mensagem de duplicado ao sair do campo | | | |
 | **T-03** | Telefone | Com erro em telefone: pressionar Tab não deve travar o foco no campo | | | |
