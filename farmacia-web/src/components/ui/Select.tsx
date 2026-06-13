@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 
 export interface SelectOption {
   value: string
@@ -19,6 +19,7 @@ interface SelectProps {
   disabled?: boolean
   error?: string
   onBlur?: () => void
+  searchable?: boolean
 }
 
 export function Select({
@@ -32,17 +33,30 @@ export function Select({
   disabled = false,
   error,
   onBlur,
+  searchable = false,
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 })
+  const [search, setSearch] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
-  const menuRef = useRef<HTMLUListElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   const selected = options.find((o) => o.value === value)
 
+  const filteredOptions = searchable && search.trim()
+    ? options.filter((o) => o.label.toLowerCase().startsWith(search.trim().toLowerCase()))
+    : options
+
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setSearch('')
+      return
+    }
+    if (searchable) {
+      setTimeout(() => searchRef.current?.focus(), 0)
+    }
 
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node
@@ -54,14 +68,13 @@ export function Select({
       if (e.key === 'Escape') setOpen(false)
     }
 
-    // click (não mousedown) — evita fechar antes do item ser selecionado
     document.addEventListener('click', handleClickOutside)
     document.addEventListener('keydown', handleKey)
     return () => {
       document.removeEventListener('click', handleClickOutside)
       document.removeEventListener('keydown', handleKey)
     }
-  }, [open])
+  }, [open, searchable])
 
   function updateMenuPosition() {
     const rect = triggerRef.current?.getBoundingClientRect()
@@ -86,43 +99,68 @@ export function Select({
 
   const menu = open
     ? createPortal(
-        <ul
+        <div
           ref={menuRef}
-          role="listbox"
           style={{
             position: 'fixed',
             top: menuStyle.top,
             left: menuStyle.left,
             width: menuStyle.width,
           }}
-          className="z-[200] max-h-56 overflow-y-auto rounded-xl border border-white/15 bg-bg-elevated shadow-2xl py-1 overscroll-contain"
+          className="z-[200] rounded-xl border border-white/15 bg-bg-elevated shadow-2xl overflow-hidden"
         >
-          {options.length === 0 ? (
-            <li className="px-3 py-4 text-sm text-[#8b9cb3] text-center">Nenhuma opção disponível</li>
-          ) : (
-            options.map((opt) => (
-              <li key={opt.value} role="option" aria-selected={opt.value === value}>
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    handleSelect(opt.value)
+          {searchable && (
+            <div className="px-2 pt-2 pb-1 border-b border-white/10">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-[#8b9cb3]" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) }
+                    if (e.key === 'Enter' && filteredOptions.length === 1) {
+                      handleSelect(filteredOptions[0].value)
+                    }
                   }}
-                  className={`w-full text-left px-3 py-2.5 transition-colors
-                    ${opt.value === value
-                      ? 'bg-mint/15 text-mint'
-                      : 'text-[#f0f4f8] hover:bg-white/8'
-                    }`}
-                >
-                  <span className="block text-sm font-medium leading-snug">{opt.label}</span>
-                  {opt.sublabel && (
-                    <span className="block text-xs text-[#8b9cb3] mt-0.5 leading-snug">{opt.sublabel}</span>
-                  )}
-                </button>
-              </li>
-            ))
+                  placeholder="Buscar…"
+                  className="w-full pl-7 pr-2 py-1.5 rounded-lg bg-white/[0.06] text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-mint/40"
+                />
+              </div>
+            </div>
           )}
-        </ul>,
+          <ul
+            role="listbox"
+            className="max-h-48 overflow-y-auto py-1 overscroll-contain"
+          >
+            {filteredOptions.length === 0 ? (
+              <li className="px-3 py-4 text-sm text-[#8b9cb3] text-center">Nenhuma opção encontrada</li>
+            ) : (
+              filteredOptions.map((opt) => (
+                <li key={opt.value} role="option" aria-selected={opt.value === value}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      handleSelect(opt.value)
+                    }}
+                    className={`w-full text-left px-3 py-2.5 transition-colors
+                      ${opt.value === value
+                        ? 'bg-mint/15 text-mint'
+                        : 'text-[#f0f4f8] hover:bg-white/8'
+                      }`}
+                  >
+                    <span className="block text-sm font-medium leading-snug">{opt.label}</span>
+                    {opt.sublabel && (
+                      <span className="block text-xs text-[#8b9cb3] mt-0.5 leading-snug">{opt.sublabel}</span>
+                    )}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>,
         document.body,
       )
     : null

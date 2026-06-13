@@ -582,7 +582,7 @@ export function ClientesCadastroTab() {
     }
     const contato = await verificarContatoDisponivel(form.telefone, email)
     if (contato.emailEmUso) {
-      if (refocar) focarCampo(emailInputRef)
+      agendarLimpezaEmailAposErro()
       return false
     }
     setFieldErrors((prev) => ({ ...prev, email: undefined }))
@@ -996,7 +996,7 @@ export function ClientesCadastroTab() {
                         !isEdicao
                         && prev.cpf.length === 11
                         && cpf !== prev.cpf
-                        && (temDadosDeCliente(prev) || cpfClienteCarregado)
+                        && cpfClienteCarregado
                       ) {
                         setCpfClienteCarregado(null)
                         return formularioNovoComCpf(cpf, {
@@ -1372,6 +1372,7 @@ export function ClientesCadastroTab() {
                   }}
                   options={UFS_BR.map((uf) => ({ value: uf, label: uf }))}
                   placeholder="UF"
+                  searchable
                   error={erroCampo('uf')}
                   className={inputCompact}
                 />
