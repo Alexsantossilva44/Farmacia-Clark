@@ -36,6 +36,7 @@ import { focarPrimeiroErro } from '@/lib/validacao-formulario'
  * Evoluções recentes no front:
  * - Endereço: UF e Cidade obrigatórios (validarUfEndereco / validarCidadeObrigatoria).
  * - Submit: validarFormulario marca todos os erros e focarPrimeiroErro leva ao primeiro campo.
+ * - CPF inválido ou duplicado: exibe erro, aguarda 3s e limpa o campo para nova digitação.
  * - Observações: placeholder orienta registro de alergias (campo continua opcional).
  * - Nome completo: maxLength 100 + sanitizeNomePessoa (antes 150 só no banco/API).
  */
@@ -52,6 +53,20 @@ import type { Cliente, Endereco } from '@/types/cliente'
 const MSG_TELEFONE_DUPLICADO = 'Telefone já cadastrado em outro cliente.'
 const MSG_EMAIL_DUPLICADO = 'E-mail já cadastrado em outro cliente.'
 const MSG_CPF_DUPLICADO = 'CPF já cadastrado. Use Buscar por CPF para editar.'
+const CPF_RESET_DELAY_MS = 3000
+
+type CampoClienteForm =
+  | 'nome'
+  | 'cpf'
+  | 'dataNascimento'
+  | 'sexo'
+  | 'telefone'
+  | 'email'
+  | 'logradouro'
+  | 'bairro'
+  | 'cep'
+  | 'uf'
+  | 'cidade'
 
 /** Valores não padronizados impedem o autofill do Chrome ("Gerenciar informações pessoais"). */
 const AC = {
@@ -211,6 +226,7 @@ export function ClientesCadastroTab() {
     uf?: string
     cidade?: string
   }>({})
+  const [camposTocados, setCamposTocados] = useState<Partial<Record<CampoClienteForm, boolean>>>({})
   const [cpfEmUso, setCpfEmUso] = useState(false)
   const [telefoneEmUso, setTelefoneEmUso] = useState(false)
   const [emailEmUso, setEmailEmUso] = useState(false)
@@ -222,8 +238,19 @@ export function ClientesCadastroTab() {
   const telefoneInputRef = useRef<HTMLInputElement>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
   const cpfInputRef = useRef<HTMLInputElement>(null)
+  const camposTocadosRef = useRef<Partial<Record<CampoClienteForm, boolean>>>({})
+  const cpfResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cpfValidacaoRef = useRef(0)
 
   const isEdicao = clienteId !== null
+
+  useEffect(() => {
+    camposTocadosRef.current = camposTocados
+  }, [camposTocados])
+
+  useEffect(() => () => {
+    if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
+  }, [])
 
   useEffect(() => {
     if (isEdicao) setBloquearAutofillInicial(false)
@@ -241,6 +268,100 @@ export function ClientesCadastroTab() {
 
   function liberarCamposDoFormulario() {
     setBloquearAutofillInicial(false)
+  }
+
+  function marcarCampoTocado(campo: CampoClienteForm) {
+    setCamposTocados((prev) => ({ ...prev, [campo]: true }))
+  }
+
+  function marcarTodosCamposTocados() {
+    const todos: CampoClienteForm[] = [
+      'nome',
+      'cpf',
+      'dataNascimento',
+      'sexo',
+      'telefone',
+      'email',
+      'logradouro',
+      'bairro',
+      'cep',
+      'uf',
+      'cidade',
+    ]
+    setCamposTocados(Object.fromEntries(todos.map((c) => [c, true])))
+  }
+
+  function deveValidarCampo(campo: CampoClienteForm): boolean {
+    return Boolean(camposTocados[campo])
+  }
+
+  function limparErrosCamposAdjacentesAoCpf() {
+    const tocados = camposTocadosRef.current
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      if (!tocados.dataNascimento) next.dataNascimento = undefined
+      if (!tocados.sexo) next.sexo = undefined
+      return next
+    })
+  }
+
+  function erroCampo(campo: CampoClienteForm): string | undefined {
+    if (!deveValidarCampo(campo)) return undefined
+    return fieldErrors[campo]
+  }
+
+  function resetValidacaoFormulario() {
+    cancelarLimpezaCpfAgendada()
+    setCamposTocados({})
+    setFieldErrors({})
+  }
+
+  function cancelarLimpezaCpfAgendada() {
+    if (cpfResetTimerRef.current) {
+      clearTimeout(cpfResetTimerRef.current)
+      cpfResetTimerRef.current = null
+    }
+  }
+
+  function limparCpfParaNovaEntrada() {
+    setCpfEmUso(false)
+    setForm((prev) => ({ ...prev, cpf: '' }))
+    setFieldErrors((prev) => ({ ...prev, cpf: undefined }))
+    setCamposTocados((prev) => {
+      const { cpf: _cpf, ...rest } = prev
+      return rest
+    })
+    limparErrosCamposAdjacentesAoCpf()
+    focarCampo(cpfInputRef)
+  }
+
+  function agendarLimpezaCpfAposErro() {
+    cancelarLimpezaCpfAgendada()
+    cpfResetTimerRef.current = setTimeout(() => {
+      cpfResetTimerRef.current = null
+      limparCpfParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
+  }
+
+  async function confirmarCpfCadastro(cpf: string): Promise<void> {
+    if (isEdicao) return
+    const digits = onlyDigits(cpf)
+    if (digits.length !== 11) return
+
+    const validacaoId = ++cpfValidacaoRef.current
+    marcarCampoTocado('cpf')
+    const cpfErr = validarCpf(cpf)
+    if (cpfErr) {
+      setFieldErrors((prev) => ({ ...prev, cpf: cpfErr }))
+      limparErrosCamposAdjacentesAoCpf()
+      focarCampo(cpfInputRef)
+      agendarLimpezaCpfAposErro()
+      return
+    }
+
+    const duplicado = await verificarCpfDisponivel(cpf)
+    if (validacaoId !== cpfValidacaoRef.current) return
+    if (duplicado) agendarLimpezaCpfAposErro()
   }
 
   async function verificarContatoDisponivel(
@@ -271,6 +392,8 @@ export function ClientesCadastroTab() {
 
       setTelefoneEmUso(telOcupado)
       setEmailEmUso(mailOcupado)
+      if (telOcupado) marcarCampoTocado('telefone')
+      if (mailOcupado) marcarCampoTocado('email')
       setFieldErrors((prev) => ({
         ...prev,
         telefone: telOcupado
@@ -305,34 +428,46 @@ export function ClientesCadastroTab() {
     return cpfEmUso || fieldErrors.cpf === MSG_CPF_DUPLICADO
   }
 
-  async function confirmarTelefone(): Promise<boolean> {
+  /** Data e sexo (após CPF) só liberados quando CPF estiver válido e não duplicado. */
+  function cpfImpedeProximosCampos(): boolean {
+    if (isEdicao) return false
+    if (verificandoCpf || cpfBloqueado()) return true
+    if (camposTocados.cpf && Boolean(fieldErrors.cpf)) return true
+    const digits = onlyDigits(form.cpf)
+    if (digits.length === 11 && validarCpf(form.cpf)) return true
+    return false
+  }
+
+  async function confirmarTelefone(refocar = false): Promise<boolean> {
     const telefoneErr = validarTelefone(form.telefone ?? '', true)
     if (telefoneErr) {
+      marcarCampoTocado('telefone')
       setFieldErrors((prev) => ({ ...prev, telefone: telefoneErr }))
-      focarCampo(telefoneInputRef)
+      if (refocar) focarCampo(telefoneInputRef)
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, undefined)
     if (contato.telefoneEmUso) {
-      focarCampo(telefoneInputRef)
+      if (refocar) focarCampo(telefoneInputRef)
       return false
     }
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
     return true
   }
 
-  async function confirmarEmail(): Promise<boolean> {
+  async function confirmarEmail(refocar = false): Promise<boolean> {
     const email = sanitizeEmailInput(form.email ?? '')
     setForm((prev) => (prev.email === email ? prev : { ...prev, email }))
     const emailErr = validarEmail(email, true)
     if (emailErr) {
+      marcarCampoTocado('email')
       setFieldErrors((prev) => ({ ...prev, email: emailErr }))
-      focarCampo(emailInputRef)
+      if (refocar) focarCampo(emailInputRef)
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, email)
     if (contato.emailEmUso) {
-      focarCampo(emailInputRef)
+      if (refocar) focarCampo(emailInputRef)
       return false
     }
     setFieldErrors((prev) => ({ ...prev, email: undefined }))
@@ -350,10 +485,12 @@ export function ClientesCadastroTab() {
     try {
       await fetchClientePorCpf(digits)
       setCpfEmUso(true)
+      marcarCampoTocado('cpf')
       setFieldErrors((prev) => ({
         ...prev,
         cpf: MSG_CPF_DUPLICADO,
       }))
+      limparErrosCamposAdjacentesAoCpf()
       focarCampo(cpfInputRef)
       return true
     } catch (err) {
@@ -394,6 +531,7 @@ export function ClientesCadastroTab() {
   }
 
   function validarFormulario(): boolean {
+    marcarTodosCamposTocados()
     const nomeErr = validarNomePessoa(form.nome)
     const cpfErr = isEdicao ? null : validarCpf(form.cpf)
     const dataErr = erroDataNascimento()
@@ -476,7 +614,7 @@ export function ClientesCadastroTab() {
       setCpfEmUso(false)
       setTelefoneEmUso(false)
       setEmailEmUso(false)
-      setFieldErrors({})
+      resetValidacaoFormulario()
       setBloquearAutofillInicial(false)
       setSuccess(`Cliente "${data.nome}" carregado.`)
       setError('')
@@ -487,7 +625,7 @@ export function ClientesCadastroTab() {
       if (err instanceof ApiError && err.status === 404) {
         const cpf = onlyDigits(cpfBusca)
         setForm(formularioNovoComCpf(cpf))
-        setFieldErrors({})
+        resetValidacaoFormulario()
         setCpfEmUso(false)
         setTelefoneEmUso(false)
         setEmailEmUso(false)
@@ -510,7 +648,7 @@ export function ClientesCadastroTab() {
       setCpfEmUso(false)
       setTelefoneEmUso(false)
       setEmailEmUso(false)
-      setFieldErrors({})
+      resetValidacaoFormulario()
       setSuccess('Cliente cadastrado com sucesso.')
       setError('')
       qc.invalidateQueries({ queryKey: ['clientes'] })
@@ -522,16 +660,20 @@ export function ClientesCadastroTab() {
         const detail = (err.problem?.detail ?? err.message).toLowerCase()
         if (tipo.includes('cpf-duplicado') || detail.includes('cpf')) {
           setCpfEmUso(true)
+          marcarCampoTocado('cpf')
           setFieldErrors((prev) => ({
             ...prev,
             cpf: MSG_CPF_DUPLICADO,
           }))
           focarCampo(cpfInputRef)
+          agendarLimpezaCpfAposErro()
         } else if (tipo.includes('telefone-duplicado') || detail.includes('telefone')) {
           setTelefoneEmUso(true)
+          marcarCampoTocado('telefone')
           setFieldErrors((prev) => ({ ...prev, telefone: MSG_TELEFONE_DUPLICADO }))
         } else if (tipo.includes('email-duplicado') || detail.includes('e-mail') || detail.includes('email')) {
           setEmailEmUso(true)
+          marcarCampoTocado('email')
           setFieldErrors((prev) => ({ ...prev, email: MSG_EMAIL_DUPLICADO }))
         }
       }
@@ -558,9 +700,11 @@ export function ClientesCadastroTab() {
         const detail = (err.problem?.detail ?? err.message).toLowerCase()
         if (detail.includes('telefone')) {
           setTelefoneEmUso(true)
+          marcarCampoTocado('telefone')
           setFieldErrors((prev) => ({ ...prev, telefone: MSG_TELEFONE_DUPLICADO }))
         } else if (detail.includes('e-mail') || detail.includes('email')) {
           setEmailEmUso(true)
+          marcarCampoTocado('email')
           setFieldErrors((prev) => ({ ...prev, email: MSG_EMAIL_DUPLICADO }))
         }
       }
@@ -575,7 +719,7 @@ export function ClientesCadastroTab() {
     setForm(emptyCliente())
     setError('')
     setSuccess('')
-    setFieldErrors({})
+    resetValidacaoFormulario()
     setCpfEmUso(false)
     setTelefoneEmUso(false)
     setEmailEmUso(false)
@@ -589,7 +733,7 @@ export function ClientesCadastroTab() {
     setCpfEmUso(false)
     setTelefoneEmUso(false)
     setEmailEmUso(false)
-    setFieldErrors({})
+    resetValidacaoFormulario()
     setForm((prev) => formularioNovoComCpf(cpf, { nome: prev.nome, dataNascimento: prev.dataNascimento, sexo: prev.sexo }))
   }
 
@@ -617,10 +761,12 @@ export function ClientesCadastroTab() {
     || verificandoCpf
     || verificandoContato
 
+  const proximosCamposBloqueados = cpfImpedeProximosCampos()
+
   return (
-    <div className="h-full min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px] gap-4 lg:gap-5">
+    <div className="h-full min-h-0 min-w-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_240px] gap-5 lg:gap-6">
       {/* ── Coluna esquerda: formulário vertical ── */}
-      <Card className="flex flex-col min-h-0 overflow-hidden p-4 sm:p-5 lg:p-6 order-2 lg:order-1">
+      <Card className="flex flex-col min-h-0 min-w-0 p-5 sm:p-6 lg:px-8 lg:py-6 order-2 xl:order-1">
         <div className="shrink-0 flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
           <div>
             <h2 className="font-semibold text-base sm:text-lg">
@@ -640,19 +786,9 @@ export function ClientesCadastroTab() {
           key={formKey}
           autoComplete="off"
           noValidate
-          className="form-sem-autofill flex flex-1 flex-col min-h-0"
+          className="form-sem-autofill relative flex flex-1 flex-col min-h-0 min-w-0"
           onSubmit={(e) => e.preventDefault()}
-          onFocusCapture={(e) => {
-            liberarCamposDoFormulario()
-            if (!cpfEmUso || isEdicao) return
-            const target = e.target as HTMLElement
-            if (target === cpfInputRef.current) return
-            const form = e.currentTarget
-            if (!form.contains(target)) return
-            if (target.matches('input:not([tabindex="-1"]), textarea, select, button[type="button"]')) {
-              requestAnimationFrame(() => focarCampo(cpfInputRef))
-            }
-          }}
+          onFocusCapture={liberarCamposDoFormulario}
           onMouseDown={liberarCamposDoFormulario}
         >
           <div
@@ -663,8 +799,8 @@ export function ClientesCadastroTab() {
             <input tabIndex={-1} type="password" autoComplete="current-password" name="prevent_autofill_pw" />
           </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1 space-y-5">
-          <section>
+        <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain space-y-5 pr-0.5">
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Dados pessoais
             </h3>
@@ -679,25 +815,26 @@ export function ClientesCadastroTab() {
                   // sanitizeNomePessoa já limita a 100 chars e remove caracteres inválidos.
                   const nome = sanitizeNomePessoa(e.target.value)
                   setForm({ ...form, nome })
-                  if (fieldErrors.nome) {
+                  if (deveValidarCampo('nome')) {
                     setFieldErrors((prev) => ({
                       ...prev,
                       nome: validarNomePessoa(nome) ?? undefined,
                     }))
                   }
                 }}
-                onBlur={() =>
+                onBlur={() => {
+                  marcarCampoTocado('nome')
                   setFieldErrors((prev) => ({
                     ...prev,
                     nome: validarNomePessoa(form.nome) ?? undefined,
                   }))
-                }
-                error={fieldErrors.nome}
+                }}
+                error={erroCampo('nome')}
                 placeholder="Ex.: Jorge Macedo"
                 maxLength={100} // alinhado a clientes.nome VARCHAR(100) e @Size(max=100) na API
                 className={inputCompact}
               />
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(11rem,1.3fr)_minmax(8rem,1fr)_minmax(8rem,0.9fr)] gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">
                 <Input
                   ref={cpfInputRef}
                   label="CPF *"
@@ -709,14 +846,17 @@ export function ClientesCadastroTab() {
                     if (
                       e.key === 'Tab'
                       && !e.shiftKey
-                      && cpfBloqueado()
+                      && (cpfImpedeProximosCampos() || verificandoCpf)
                     ) {
                       e.preventDefault()
                     }
                   }}
                   onChange={(e) => {
+                    cancelarLimpezaCpfAgendada()
+                    cpfValidacaoRef.current += 1
                     const cpf = onlyDigits(e.target.value).slice(0, 11)
                     setCpfEmUso(false)
+                    limparErrosCamposAdjacentesAoCpf()
                     setForm((prev) => {
                       if (
                         !isEdicao
@@ -733,20 +873,25 @@ export function ClientesCadastroTab() {
                       }
                       return { ...prev, cpf }
                     })
-                    if (fieldErrors.cpf) {
+                    if (deveValidarCampo('cpf')) {
                       setFieldErrors((prev) => ({
                         ...prev,
                         cpf: validarCpf(cpf) ?? undefined,
                       }))
                     }
+                    if (!isEdicao && cpf.length === 11) {
+                      void confirmarCpfCadastro(cpf)
+                    }
                   }}
                   onBlur={() => {
                     if (isEdicao) return
+                    if (onlyDigits(form.cpf).length === 11) return
+                    marcarCampoTocado('cpf')
                     const cpfErr = validarCpf(form.cpf)
                     setFieldErrors((prev) => ({ ...prev, cpf: cpfErr ?? undefined }))
-                    if (!cpfErr) void verificarCpfDisponivel(form.cpf)
+                    if (cpfErr) limparErrosCamposAdjacentesAoCpf()
                   }}
-                  error={fieldErrors.cpf}
+                  error={erroCampo('cpf')}
                   disabled={isEdicao}
                   className={`font-mono ${inputCompact}`}
                   placeholder="000.000.000-00"
@@ -755,58 +900,65 @@ export function ClientesCadastroTab() {
                   label="Data de nascimento *"
                   name="farmacia_data_nascimento"
                   autoComplete={AC.data}
-                  readOnly={readOnlyAntiAutofill}
+                  readOnly={readOnlyAntiAutofill && !proximosCamposBloqueados}
+                  disabled={proximosCamposBloqueados}
                   value={form.dataNascimento ?? ''}
                   onChange={(dataNascimento) => {
+                    if (proximosCamposBloqueados) return
                     setForm({ ...form, dataNascimento })
-                    if (fieldErrors.dataNascimento || dataNascimento.length === 10) {
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        dataNascimento: dataNascimento.trim()
-                          ? validarDataNascimentoBr(dataNascimento) ?? undefined
-                          : 'Data de nascimento é obrigatória.',
-                      }))
-                    }
+                    if (!deveValidarCampo('dataNascimento')) return
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      dataNascimento: dataNascimento.trim()
+                        ? validarDataNascimentoBr(dataNascimento) ?? undefined
+                        : 'Data de nascimento é obrigatória.',
+                    }))
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    if (proximosCamposBloqueados) return
+                    marcarCampoTocado('dataNascimento')
                     setFieldErrors((prev) => ({
                       ...prev,
                       dataNascimento: erroDataNascimento() ?? undefined,
                     }))
-                  }
-                  error={fieldErrors.dataNascimento}
+                  }}
+                  error={erroCampo('dataNascimento')}
                   className={inputCompact}
                 />
                 <Select
                   label="Sexo *"
                   value={form.sexo ?? ''}
+                  disabled={proximosCamposBloqueados || readOnlyAntiAutofill}
                   onChange={(v) => {
+                    if (proximosCamposBloqueados) return
                     setForm({ ...form, sexo: v })
-                    if (fieldErrors.sexo) {
+                    if (deveValidarCampo('sexo')) {
                       setFieldErrors((prev) => ({
                         ...prev,
                         sexo: validarSexo(v) ?? undefined,
                       }))
                     }
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    if (proximosCamposBloqueados) return
+                    marcarCampoTocado('sexo')
                     setFieldErrors((prev) => ({
                       ...prev,
                       sexo: validarSexo(form.sexo ?? '') ?? undefined,
                     }))
-                  }
+                  }}
                   options={SEXO_OPCOES}
                   placeholder="Selecione…"
-                  error={fieldErrors.sexo}
+                  error={erroCampo('sexo')}
                   className={inputCompact}
                 />
               </div>
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Contato</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-[minmax(11rem,13rem)_minmax(0,1fr)] gap-2.5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0">
               <Input
                 ref={telefoneInputRef}
                 label="Telefone / WhatsApp *"
@@ -815,30 +967,22 @@ export function ClientesCadastroTab() {
                 readOnly={readOnlyAntiAutofill}
                 inputMode="numeric"
                 value={formatTelefoneDisplay(form.telefone ?? '')}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === 'Tab'
-                    && !e.shiftKey
-                    && (telefoneEmUso || fieldErrors.telefone === MSG_TELEFONE_DUPLICADO)
-                  ) {
-                    e.preventDefault()
-                  }
-                }}
                 onChange={(e) => {
                   const telefone = onlyDigits(e.target.value).slice(0, 11)
                   setTelefoneEmUso(false)
                   setForm({ ...form, telefone })
                   setFieldErrors((prev) => ({
                     ...prev,
-                    telefone: prev.telefone
+                    telefone: deveValidarCampo('telefone')
                       ? validarTelefone(telefone, true) ?? undefined
                       : undefined,
                   }))
                 }}
                 onBlur={() => {
+                  marcarCampoTocado('telefone')
                   void confirmarTelefone()
                 }}
-                error={fieldErrors.telefone}
+                error={erroCampo('telefone')}
                 placeholder="(11) 99999-9999"
                 className={`font-mono ${inputCompact}`}
               />
@@ -854,16 +998,9 @@ export function ClientesCadastroTab() {
                 value={sanitizeEmailInput(form.email ?? '')}
                 onKeyDown={(e) => {
                   if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault()
-                  if (
-                    e.key === 'Tab'
-                    && !e.shiftKey
-                    && (emailEmUso || fieldErrors.email === MSG_EMAIL_DUPLICADO || verificandoContato)
-                  ) {
-                    e.preventDefault()
-                  }
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    void confirmarEmail()
+                    void confirmarEmail(true)
                   }
                 }}
                 onPaste={(e) => {
@@ -873,7 +1010,9 @@ export function ClientesCadastroTab() {
                   setForm({ ...form, email: pasted })
                   setFieldErrors((prev) => ({
                     ...prev,
-                    email: validarEmail(pasted) ?? undefined,
+                    email: deveValidarCampo('email')
+                      ? validarEmail(pasted) ?? undefined
+                      : undefined,
                   }))
                 }}
                 onChange={(e) => {
@@ -882,7 +1021,9 @@ export function ClientesCadastroTab() {
                   setForm({ ...form, email })
                   setFieldErrors((prev) => ({
                     ...prev,
-                    email: prev.email ? validarEmail(email, true) ?? undefined : undefined,
+                    email: deveValidarCampo('email')
+                      ? validarEmail(email, true) ?? undefined
+                      : undefined,
                   }))
                 }}
                 onInput={(e) => {
@@ -894,19 +1035,20 @@ export function ClientesCadastroTab() {
                   }
                 }}
                 onBlur={() => {
+                  marcarCampoTocado('email')
                   void confirmarEmail()
                 }}
-                error={fieldErrors.email}
+                error={erroCampo('email')}
                 placeholder="cliente@email.com"
                 className={inputCompact}
               />
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Endereço</h3>
-            <div className="space-y-2.5">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_100px] gap-2.5">
+            <div className="space-y-2.5 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_100px] gap-2.5 min-w-0">
                 <Input
                   label="Logradouro *"
                   name="farmacia_logradouro"
@@ -916,20 +1058,21 @@ export function ClientesCadastroTab() {
                   onChange={(e) => {
                     const logradouro = e.target.value
                     setForm(patchEndereco(form, { logradouro }))
-                    if (fieldErrors.logradouro) {
+                    if (deveValidarCampo('logradouro')) {
                       setFieldErrors((prev) => ({
                         ...prev,
                         logradouro: validarLogradouro(logradouro) ?? undefined,
                       }))
                     }
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    marcarCampoTocado('logradouro')
                     setFieldErrors((prev) => ({
                       ...prev,
                       logradouro: validarLogradouro(form.endereco?.logradouro ?? '') ?? undefined,
                     }))
-                  }
-                  error={fieldErrors.logradouro}
+                  }}
+                  error={erroCampo('logradouro')}
                   placeholder="Rua, avenida…"
                   className={inputCompact}
                 />
@@ -943,7 +1086,7 @@ export function ClientesCadastroTab() {
                   className={inputCompact}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(7.5rem,9rem)] gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,9rem)] gap-2.5 min-w-0">
                 <Input
                   label="Complemento"
                   name="farmacia_complemento"
@@ -964,20 +1107,21 @@ export function ClientesCadastroTab() {
                   onChange={(e) => {
                     const bairro = e.target.value
                     setForm(patchEndereco(form, { bairro }))
-                    if (fieldErrors.bairro) {
+                    if (deveValidarCampo('bairro')) {
                       setFieldErrors((prev) => ({
                         ...prev,
                         bairro: validarBairro(bairro) ?? undefined,
                       }))
                     }
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    marcarCampoTocado('bairro')
                     setFieldErrors((prev) => ({
                       ...prev,
                       bairro: validarBairro(form.endereco?.bairro ?? '') ?? undefined,
                     }))
-                  }
-                  error={fieldErrors.bairro}
+                  }}
+                  error={erroCampo('bairro')}
                   className={inputCompact}
                 />
                 <Input
@@ -989,26 +1133,27 @@ export function ClientesCadastroTab() {
                   onChange={(e) => {
                     const cep = onlyDigits(e.target.value).slice(0, 8)
                     setForm(patchEndereco(form, { cep }))
-                    if (fieldErrors.cep) {
+                    if (deveValidarCampo('cep')) {
                       setFieldErrors((prev) => ({
                         ...prev,
                         cep: validarCep(cep) ?? undefined,
                       }))
                     }
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    marcarCampoTocado('cep')
                     setFieldErrors((prev) => ({
                       ...prev,
                       cep: validarCep(form.endereco?.cep ?? '') ?? undefined,
                     }))
-                  }
-                  error={fieldErrors.cep}
+                  }}
+                  error={erroCampo('cep')}
                   className={`font-mono ${inputCompact}`}
                   placeholder="00000-000"
                 />
               </div>
               {/* UF antes da cidade: ao trocar UF, cidade incompatível é limpa e revalidada. */}
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(4.5rem,5.5rem)_minmax(0,1fr)] gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,5.5rem)_minmax(0,1fr)] gap-2.5 min-w-0">
                 <Select
                   label="UF *"
                   value={form.endereco?.uf ?? ''}
@@ -1019,10 +1164,11 @@ export function ClientesCadastroTab() {
                       patch.cidade = ''
                     }
                     setForm(patchEndereco(form, patch))
+                    marcarCampoTocado('uf')
                     setFieldErrors((prev) => ({
                       ...prev,
                       uf: validarUfEndereco(v) ?? undefined,
-                      ...(prev.cidade || patch.cidade === ''
+                      ...(deveValidarCampo('cidade') || patch.cidade === ''
                         ? {
                             cidade:
                               validarCidadeObrigatoria(
@@ -1033,15 +1179,16 @@ export function ClientesCadastroTab() {
                         : {}),
                     }))
                   }}
-                  onBlur={() =>
+                  onBlur={() => {
+                    marcarCampoTocado('uf')
                     setFieldErrors((prev) => ({
                       ...prev,
                       uf: validarUfEndereco(form.endereco?.uf ?? '') ?? undefined,
                     }))
-                  }
+                  }}
                   options={UFS_BR.map((uf) => ({ value: uf, label: uf }))}
                   placeholder="UF"
-                  error={fieldErrors.uf}
+                  error={erroCampo('uf')}
                   className={inputCompact}
                 />
                 <CidadePorUfSelect
@@ -1050,13 +1197,14 @@ export function ClientesCadastroTab() {
                   value={form.endereco?.cidade ?? ''}
                   onChange={(cidade) => {
                     setForm(patchEndereco(form, { cidade }))
+                    marcarCampoTocado('cidade')
                     setFieldErrors((prev) => ({
                       ...prev,
                       cidade:
                         validarCidadeObrigatoria(cidade, form.endereco?.uf ?? '') ?? undefined,
                     }))
                   }}
-                  error={fieldErrors.cidade}
+                  error={erroCampo('cidade')}
                   className={inputCompact}
                   disabled={readOnlyAntiAutofill}
                 />
@@ -1064,11 +1212,11 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section>
+          <section className="min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Informações clínicas
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 min-w-0">
               <div>
                 <label className="block text-xs font-medium text-[#8b9cb3] mb-1.5">
                   Alergias
@@ -1129,7 +1277,7 @@ export function ClientesCadastroTab() {
       </Card>
 
       {/* ── Coluna direita: busca compacta + resumo ── */}
-      <aside className="flex flex-col gap-3 min-h-0 order-1 lg:order-2 lg:max-w-[300px]">
+      <aside className="flex flex-col gap-3 min-h-0 order-1 xl:order-2 xl:w-[240px] xl:shrink-0">
         <Card className="p-4 shrink-0">
           <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <Search className="size-4 text-mint" />

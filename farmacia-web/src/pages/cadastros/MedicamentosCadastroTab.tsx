@@ -218,55 +218,52 @@ export function MedicamentosCadastroTab() {
   const tituloFormulario = editId ? 'Editar medicamento' : 'Novo medicamento'
 
   return (
-    <div className="h-full min-h-0 flex flex-col">
-      <div className="shrink-0 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 pb-4
-        bg-bg-deep/95 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center justify-between gap-3">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-full min-h-0">
+      <div className="flex flex-col min-h-0 overflow-hidden order-2 lg:order-1">
+        <div className="shrink-0 flex items-center justify-between gap-3 mb-3">
           <h2 className="font-semibold">Produtos cadastrados</h2>
           <Button variant="secondary" size="sm" onClick={startNew}>
             <Plus className="size-4" />
             Novo
           </Button>
         </div>
-        <h2 className="font-semibold xl:pt-0 pt-1">{tituloFormulario}</h2>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain glass rounded-2xl border border-white/10 divide-y divide-white/5">
+          {medsQuery.isLoading && (
+            <p className="p-6 text-sm text-[#8b9cb3]">Carregando…</p>
+          )}
+          {medsQuery.data?.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => startEdit(m)}
+              className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors
+                ${editId === m.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-sm">{m.nomeComercial}</p>
+                  <p className="text-xs text-[#8b9cb3] mt-0.5">{m.nomeGenerico}</p>
+                </div>
+                <Badge variant={nivelControleVariant(m.nivelControle)} className="shrink-0">
+                  {nivelControleLabel(m.nivelControle)}
+                </Badge>
+              </div>
+              <p className="text-xs text-[#8b9cb3] mt-1">
+                {m.fabricante?.nomeFantasia ?? m.fabricante?.razaoSocial ?? 'Sem fabricante'}
+              </p>
+              <p className="text-xs font-mono text-mint/70 mt-0.5">{formatCurrency(m.precoMaximoConsumidor)}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 pb-6">
-          <div className="glass rounded-2xl border border-white/10 divide-y divide-white/5 min-h-[12rem]">
-            {medsQuery.isLoading && (
-              <p className="p-6 text-sm text-[#8b9cb3]">Carregando…</p>
-            )}
-            {medsQuery.data?.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => startEdit(m)}
-                className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors
-                  ${editId === m.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-sm">{m.nomeComercial}</p>
-                    <p className="text-xs text-[#8b9cb3] mt-0.5">{m.nomeGenerico}</p>
-                  </div>
-                  <Badge variant={nivelControleVariant(m.nivelControle)} className="shrink-0">
-                    {nivelControleLabel(m.nivelControle)}
-                  </Badge>
-                </div>
-                <p className="text-xs text-[#8b9cb3] mt-1">
-                  {m.fabricante?.nomeFantasia ?? m.fabricante?.razaoSocial ?? 'Sem fabricante'}
-                </p>
-                <p className="text-xs font-mono text-mint/70 mt-0.5">{formatCurrency(m.precoMaximoConsumidor)}</p>
-              </button>
-            ))}
-          </div>
+      <Card className="flex flex-col min-h-0 overflow-hidden p-5 sm:p-6 order-1 lg:order-2">
+        <h2 className="font-semibold shrink-0 mb-4">{tituloFormulario}</h2>
+        {error && <p className="text-sm text-coral mb-3 shrink-0">{error}</p>}
+        {success && <p className="text-sm text-mint mb-3 shrink-0">{success}</p>}
 
-          <Card className="p-5 sm:p-6">
-            {error && <p className="text-sm text-coral mb-3">{error}</p>}
-            {success && <p className="text-sm text-mint mb-3">{success}</p>}
-
-            <div ref={formRef} className="space-y-3">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
+          <div ref={formRef} className="space-y-3">
           <Input
             label="Nome comercial *"
             value={form.nomeComercial}
@@ -438,9 +435,10 @@ export function MedicamentosCadastroTab() {
             />
             Exige receita médica
           </label>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-6">
+        <div className="shrink-0 flex flex-wrap gap-2 pt-4 mt-4 border-t border-white/10">
           <Button
             loading={saveMutation.isPending}
             disabled={saveMutation.isPending}
@@ -465,10 +463,8 @@ export function MedicamentosCadastroTab() {
               Cancelar
             </Button>
           )}
-            </div>
-          </Card>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

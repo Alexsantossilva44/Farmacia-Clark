@@ -59,7 +59,11 @@ export function CadastrosPage() {
       <div
         className={`flex-1 min-h-0 w-full px-4 sm:px-6 lg:px-10 py-4 sm:py-6 ${
           tabAtiva === 'medicamentos' || tabAtiva === 'fabricantes' || tabAtiva === 'fornecedores' || tabAtiva === 'categorias' || tabAtiva === 'prescritores' || tabAtiva === 'clientes'
-            ? 'overflow-hidden flex flex-col max-w-7xl xl:max-w-[1600px]'
+            ? `overflow-hidden flex flex-col ${
+                tabAtiva === 'clientes'
+                  ? 'max-w-7xl xl:max-w-[1800px]'
+                  : 'max-w-7xl xl:max-w-[1600px]'
+              }`
             : 'overflow-y-auto max-w-7xl'
         }`}
       >

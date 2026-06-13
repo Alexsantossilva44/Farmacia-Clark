@@ -1,0 +1,1027 @@
+{
+  "info": {
+    "name": "Farmacia — Clientes QA Sênior",
+    "description": "Coleção de estudo de QA Sênior para a API de Clientes da Farmacia Clark.\n\n## Como usar\n1. Importe no Postman\n2. Crie um Environment com `baseUrl = http://localhost:8080`\n3. Execute a pasta '00 — Setup Auth' primeiro para obter tokens\n4. Execute as pastas na sequência ou individualmente\n\n## Técnicas demonstradas\n- `pm.collectionVariables` para estado entre requests\n- Pre-request scripts para autenticação automática\n- `pm.test()` com Chai assertions\n- Extração de dados via `pm.response.json()`\n- Testes negativos (422, 409, 401, 403, 404)\n- Fluxo E2E encadeado\n\n## Credenciais dev\n- admin@farmacia.com / admin123\n- balconista@farmacia.com / bal123\n- estoquista@farmacia.com / est123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",         "value": "http://localhost:8080" },
+    { "key": "tokenAdmin",      "value": "" },
+    { "key": "tokenBalconista", "value": "" },
+    { "key": "tokenEstoquista", "value": "" },
+    { "key": "clienteId",       "value": "" },
+    { "key": "clienteCpf",      "value": "" }
+  ],
+  "item": [
+
+    {
+      "name": "00 — Setup Auth",
+      "description": "Executa os três logins e armazena tokens nas variáveis da collection. Execute este folder primeiro.",
+      "item": [
+        {
+          "name": "Login Admin → salva tokenAdmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna token JWT', () => pm.expect(body.token).to.be.a('string').and.not.empty);",
+                  "pm.test('Tipo é Bearer', () => pm.expect(body.tipo).to.eql('Bearer'));",
+                  "pm.collectionVariables.set('tokenAdmin', body.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@farmacia.com\",\n  \"senha\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Login Balconista → salva tokenBalconista",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tokenBalconista', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"balconista@farmacia.com\",\n  \"senha\": \"bal123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Login Estoquista → salva tokenEstoquista",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('tokenEstoquista', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"estoquista@farmacia.com\",\n  \"senha\": \"est123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        },
+        {
+          "name": "Login — Credenciais Inválidas → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Deve retornar 401', () => pm.response.to.have.status(401));",
+                  "const body = pm.response.json();",
+                  "pm.test('Problem Details tem status=401', () => pm.expect(body.status).to.eql(401));",
+                  "pm.test('Problem Details tem userMessage', () => pm.expect(body.userMessage).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@farmacia.com\",\n  \"senha\": \"senhaErrada\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/token"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "01 — POST Clientes (Cadastro)",
+      "description": "Testa o endpoint POST /api/v1/clientes com cenários positivos e negativos.",
+      "item": [
+        {
+          "name": "CT-01: Cadastro válido → 201 (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Gera CPF válido pelo algoritmo de módulo 11",
+                  "function gerarCpfValido() {",
+                  "  let d = Array.from({length: 9}, (_, i) => i === 0 ? Math.ceil(Math.random()*9) : Math.floor(Math.random()*10));",
+                  "  let soma = d.reduce((acc, v, i) => acc + v * (10 - i), 0);",
+                  "  let r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  soma = d.reduce((acc, v, i) => acc + v * (11 - i), 0);",
+                  "  r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  return d.join('');",
+                  "}",
+                  "const cpf = gerarCpfValido();",
+                  "pm.collectionVariables.set('clienteCpf', cpf);",
+                  "pm.variables.set('cpfDinamico', cpf);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('Retorna ID (UUID)', () => {",
+                  "  pm.expect(body.id).to.be.a('string');",
+                  "  pm.expect(body.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                  "});",
+                  "pm.test('Nome correto', () => pm.expect(body.nome).to.eql('Maria Silva'));",
+                  "pm.test('CPF persistido', () => pm.expect(body.cpf).to.eql(pm.collectionVariables.get('clienteCpf')));",
+                  "pm.test('Cliente ativo por padrão', () => pm.expect(body.ativo).to.be.true);",
+                  "pm.collectionVariables.set('clienteId', body.id);",
+                  "console.log('Cliente criado:', body.id, '| CPF:', body.cpf);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Silva\",\n  \"cpf\": \"{{cpfDinamico}}\",\n  \"dataNascimento\": \"1990-06-15\",\n  \"sexo\": \"FEMININO\",\n  \"telefone\": \"11912345678\",\n  \"email\": \"maria.silva@teste.com\",\n  \"alergias\": \"Penicilina\",\n  \"observacoes\": \"Teste via Postman\",\n  \"endereco\": {\n    \"logradouro\": \"Rua das Palmeiras\",\n    \"numero\": \"42\",\n    \"bairro\": \"Jardim Europa\",\n    \"cidade\": \"São Paulo\",\n    \"uf\": \"SP\",\n    \"cep\": \"01310100\"\n  }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-02: Balconista pode cadastrar → 201",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function gerarCpfValido() {",
+                  "  let d = Array.from({length: 9}, (_, i) => i === 0 ? Math.ceil(Math.random()*9) : Math.floor(Math.random()*10));",
+                  "  let soma = d.reduce((acc, v, i) => acc + v * (10 - i), 0);",
+                  "  let r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  soma = d.reduce((acc, v, i) => acc + v * (11 - i), 0);",
+                  "  r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  return d.join('');",
+                  "}",
+                  "pm.variables.set('cpfBalconista', gerarCpfValido());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Balconista tem permissão: 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenBalconista}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Oliveira\",\n  \"cpf\": \"{{cpfBalconista}}\",\n  \"dataNascimento\": \"1985-03-22\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-03: Estoquista NÃO pode cadastrar → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Estoquista bloqueado: 403 Forbidden', () => pm.response.to.have.status(403));",
+                  "pm.test('Corpo não contém dados de cliente', () => {",
+                  "  pm.expect(pm.response.text()).to.not.include('\"id\"');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenEstoquista}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Teste Bloqueado\",\n  \"cpf\": \"52998224725\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-04: Sem token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Sem token retorna 401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Sem Token\",\n  \"cpf\": \"52998224725\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-05: Nome em branco → 422 Problem Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 Unprocessable Entity', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('Problem Details: status=422', () => pm.expect(body.status).to.eql(422));",
+                  "pm.test('Problem Details: title = Dados inválidos', () => pm.expect(body.title).to.eql('Dados inválidos'));",
+                  "pm.test('Problem Details: fields não vazio', () => pm.expect(body.fields).to.be.an('array').and.not.empty);",
+                  "pm.test('Campo nome nos erros', () => {",
+                  "  pm.expect(body.fields.map(f => f.name)).to.include('nome');",
+                  "});",
+                  "pm.test('Tem userMessage', () => pm.expect(body.userMessage).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"\",\n  \"cpf\": \"52998224725\",\n  \"dataNascimento\": \"1990-01-15\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-06: Nome sem sobrenome → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('Campo nome inválido', () => {",
+                  "  pm.expect(body.fields.map(f => f.name)).to.include('nome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mononimo\",\n  \"cpf\": \"52998224725\",\n  \"dataNascimento\": \"1990-01-15\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-07: CPF com 5 dígitos (formato inválido) → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Campo CPF nos erros', () => {",
+                  "  pm.expect(pm.response.json().fields.map(f => f.name)).to.include('cpf');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ana Lima\",\n  \"cpf\": \"12345\",\n  \"dataNascimento\": \"1990-01-15\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-08: CPF 11111111111 (dígitos iguais) → 4xx",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// CPF com todos os dígitos iguais é inválido — pode ser 422 (bean validation) ou 409 (domínio)",
+                  "pm.test('Deve rejeitar CPF inválido (422 ou 409)', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([422, 409]);",
+                  "});",
+                  "pm.test('Problem Details presente', () => {",
+                  "  pm.expect(pm.response.json().userMessage).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Fulano Beltrano\",\n  \"cpf\": \"11111111111\",\n  \"dataNascimento\": \"1990-01-15\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-09: CPF duplicado → 409 Conflict",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409 Conflict — CPF duplicado', () => pm.response.to.have.status(409));",
+                  "const body = pm.response.json();",
+                  "pm.test('Problem Details status=409', () => pm.expect(body.status).to.eql(409));",
+                  "pm.test('userMessage explica duplicidade', () => pm.expect(body.userMessage).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Outro Nome\",\n  \"cpf\": \"{{clienteCpf}}\",\n  \"dataNascimento\": \"1985-03-10\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "CT-10: Nome > 100 chars → 422 (Boundary: migration V6)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const nomeGrande = Array(21).fill('João').join(' ');",
+                  "pm.variables.set('nomeGrande', nomeGrande);",
+                  "console.log('Tamanho do nome:', nomeGrande.length);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 — nome excede 100 chars', () => pm.response.to.have.status(422));",
+                  "pm.test('Campo nome nos erros', () => {",
+                  "  pm.expect(pm.response.json().fields.map(f => f.name)).to.include('nome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"{{nomeGrande}}\",\n  \"cpf\": \"52998224725\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "02 — GET por CPF",
+      "description": "Testa GET /api/v1/clientes/cpf/{cpf}",
+      "item": [
+        {
+          "name": "CT-11: Busca por CPF existente → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('ID corresponde ao cadastrado', () => {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('clienteId'));",
+                  "});",
+                  "pm.test('CPF retornado bate com o buscado', () => {",
+                  "  pm.expect(body.cpf).to.eql(pm.collectionVariables.get('clienteCpf'));",
+                  "});",
+                  "pm.test('Campo ativo é booleano', () => pm.expect(body.ativo).to.be.a('boolean'));",
+                  "pm.test('CPF tem 11 dígitos', () => pm.expect(body.cpf).to.match(/^\\d{11}$/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/cpf/{{clienteCpf}}"
+          }
+        },
+        {
+          "name": "CT-12: Busca por CPF inexistente → 404 Problem Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('Problem Details completo', () => {",
+                  "  pm.expect(body.status).to.eql(404);",
+                  "  pm.expect(body.title).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.userMessage).to.be.a('string').and.not.empty;",
+                  "  pm.expect(body.timestamp).to.be.a('string').and.not.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/cpf/00000000000"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "03 — GET por ID",
+      "description": "Testa GET /api/v1/clientes/{id}",
+      "item": [
+        {
+          "name": "CT-13: Busca por ID existente → 200 estrutura completa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('ID retornado igual ao buscado', () => {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('clienteId'));",
+                  "});",
+                  "pm.test('Nome não está vazio', () => pm.expect(body.nome).to.be.a('string').and.not.empty);",
+                  "pm.test('CPF não está vazio', () => pm.expect(body.cpf).to.be.a('string').and.not.empty);",
+                  "pm.test('CPF tem 11 dígitos', () => pm.expect(body.cpf).to.match(/^\\d{11}$/));",
+                  "pm.test('Campo ativo é booleano', () => pm.expect(body.ativo).to.be.a('boolean'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/{{clienteId}}"
+          }
+        },
+        {
+          "name": "CT-14: ID inexistente → 404 Problem Details",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('Problem Details completo', () => {",
+                  "  pm.expect(body.status).to.eql(404);",
+                  "  pm.expect(body.title).to.be.a('string');",
+                  "  pm.expect(body.userMessage).to.be.a('string');",
+                  "  pm.expect(body.timestamp).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/00000000-0000-0000-0000-000000000099"
+          }
+        },
+        {
+          "name": "CT-15: ID com formato inválido (não UUID) → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ID malformado retorna 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/nao-e-uuid"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "04 — GET Contato Disponível",
+      "description": "Testa GET /api/v1/clientes/contato/disponivel",
+      "item": [
+        {
+          "name": "CT-16: Telefone já usado → telefoneDisponivel=false",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('telefoneDisponivel é booleano', () => pm.expect(pm.response.json().telefoneDisponivel).to.be.a('boolean'));",
+                  "pm.test('Telefone indisponível — cadastrado no CT-01', () => {",
+                  "  pm.expect(pm.response.json().telefoneDisponivel).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/contato/disponivel?telefone=11912345678",
+              "query": [{ "key": "telefone", "value": "11912345678" }]
+            }
+          }
+        },
+        {
+          "name": "CT-17: Telefone novo → telefoneDisponivel=true",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Telefone disponível', () => {",
+                  "  pm.expect(pm.response.json().telefoneDisponivel).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/contato/disponivel?telefone=21999999999",
+              "query": [{ "key": "telefone", "value": "21999999999" }]
+            }
+          }
+        },
+        {
+          "name": "CT-18: Email já usado → emailDisponivel=false",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Email indisponível — cadastrado no CT-01', () => {",
+                  "  pm.expect(pm.response.json().emailDisponivel).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/contato/disponivel?email=maria.silva@teste.com",
+              "query": [{ "key": "email", "value": "maria.silva@teste.com" }]
+            }
+          }
+        },
+        {
+          "name": "CT-19: excluirClienteId — próprio cliente não conta → disponível",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Telefone disponível para o próprio cliente (exclusão)', () => {",
+                  "  pm.expect(pm.response.json().telefoneDisponivel).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/clientes/contato/disponivel?telefone=11912345678&excluirClienteId={{clienteId}}",
+              "query": [
+                { "key": "telefone", "value": "11912345678" },
+                { "key": "excluirClienteId", "value": "{{clienteId}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "05 — PUT Clientes (Atualização)",
+      "description": "Testa PUT /api/v1/clientes/{id}",
+      "item": [
+        {
+          "name": "CT-20: Atualiza nome e alergias → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Nome atualizado', () => pm.expect(body.nome).to.eql('Maria Silva Atualizada'));",
+                  "pm.test('Alergias atualizadas', () => pm.expect(body.alergias).to.include('Dipirona'));",
+                  "pm.test('ID permanece o mesmo', () => {",
+                  "  pm.expect(body.id).to.eql(pm.collectionVariables.get('clienteId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Silva Atualizada\",\n  \"dataNascimento\": \"1990-06-15\",\n  \"alergias\": \"Penicilina, Dipirona\",\n  \"observacoes\": \"Dados atualizados via Postman\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/{{clienteId}}"
+          }
+        },
+        {
+          "name": "CT-21: Inativa cliente via ativo=false → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Cliente inativado: ativo=false', () => pm.expect(pm.response.json().ativo).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/{{clienteId}}"
+          }
+        },
+        {
+          "name": "CT-22: Nome sem sobrenome na atualização → 422",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 422 — validação no PUT', () => pm.response.to.have.status(422));",
+                  "pm.test('Campo nome nos erros de validação', () => {",
+                  "  pm.expect(pm.response.json().fields.map(f => f.name)).to.include('nome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Mononimo\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/{{clienteId}}"
+          }
+        },
+        {
+          "name": "CT-23: ID inexistente no PUT → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Nome Qualquer\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/00000000-0000-0000-0000-000000000099"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "06 — Fluxo E2E Completo",
+      "description": "Executa o ciclo completo de vida do cliente: Cadastrar → Buscar → Atualizar → Inativar → Verificar. Todos os requests estão encadeados via pm.variables locais.",
+      "item": [
+        {
+          "name": "E2E-01: Cadastrar cliente fresco",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function gerarCpfValido() {",
+                  "  let d = Array.from({length: 9}, (_, i) => i === 0 ? Math.ceil(Math.random()*9) : Math.floor(Math.random()*10));",
+                  "  let soma = d.reduce((acc, v, i) => acc + v * (10 - i), 0);",
+                  "  let r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  soma = d.reduce((acc, v, i) => acc + v * (11 - i), 0);",
+                  "  r = soma % 11; d.push(r < 2 ? 0 : 11 - r);",
+                  "  return d.join('');",
+                  "}",
+                  "pm.variables.set('e2eCpf', gerarCpfValido());",
+                  "pm.variables.set('e2eEmail', 'e2e.' + Date.now() + '@qa.com');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-01] Cadastro: 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.variables.set('e2eClienteId', pm.response.json().id);",
+                  "console.log('[E2E] clienteId:', pm.variables.get('e2eClienteId'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João E2E Silva\",\n  \"cpf\": \"{{e2eCpf}}\",\n  \"dataNascimento\": \"1988-04-10\",\n  \"telefone\": \"11988880001\",\n  \"email\": \"{{e2eEmail}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes"
+          }
+        },
+        {
+          "name": "E2E-02: Buscar por CPF",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-02] Busca por CPF: 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('[E2E-02] ID bate com cadastrado', () => {",
+                  "  pm.expect(pm.response.json().id).to.eql(pm.variables.get('e2eClienteId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/cpf/{{e2eCpf}}"
+          }
+        },
+        {
+          "name": "E2E-03: Buscar por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-03] Busca por ID: 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('[E2E-03] Nome é João E2E Silva', () => {",
+                  "  pm.expect(pm.response.json().nome).to.eql('João E2E Silva');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/{{e2eClienteId}}"
+          }
+        },
+        {
+          "name": "E2E-04: Atualizar dados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-04] Atualização: 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('[E2E-04] Nome atualizado', () => {",
+                  "  pm.expect(pm.response.json().nome).to.eql('João E2E da Silva Atualizado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João E2E da Silva Atualizado\",\n  \"alergias\": \"Nenhuma conhecida\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/{{e2eClienteId}}"
+          }
+        },
+        {
+          "name": "E2E-05: Inativar cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-05] Inativação: 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('[E2E-05] ativo=false', () => pm.expect(pm.response.json().ativo).to.be.false);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ativo\": false\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/clientes/{{e2eClienteId}}"
+          }
+        },
+        {
+          "name": "E2E-06: Confirmar estado final",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('[E2E-06] Estado final: 200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('[E2E-06] cliente inativo', () => pm.expect(body.ativo).to.be.false);",
+                  "pm.test('[E2E-06] nome final correto', () => pm.expect(body.nome).to.eql('João E2E da Silva Atualizado'));",
+                  "console.log('=== Fluxo E2E concluído com sucesso ===');",
+                  "console.log('ID:', body.id, '| Nome:', body.nome, '| Ativo:', body.ativo);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{tokenAdmin}}" }],
+            "url": "{{baseUrl}}/api/v1/clientes/{{e2eClienteId}}"
+          }
+        }
+      ]
+    }
+
+  ]
+}

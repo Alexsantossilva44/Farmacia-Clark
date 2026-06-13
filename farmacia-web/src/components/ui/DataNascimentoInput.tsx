@@ -49,7 +49,7 @@ export function DataNascimentoInput({
     ${error ? 'border-coral/50 ring-coral/20' : ''} ${className}`
 
   return (
-    <div className="space-y-1.5">
+    <div className="min-w-0 space-y-1.5">
       {label && (
         <label htmlFor={inputId} className="block text-xs sm:text-sm font-medium text-[#8b9cb3]">
           {label}
