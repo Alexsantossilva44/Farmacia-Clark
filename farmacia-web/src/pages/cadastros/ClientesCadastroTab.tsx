@@ -63,6 +63,7 @@ type CampoClienteForm =
   | 'telefone'
   | 'email'
   | 'logradouro'
+  | 'numero'
   | 'bairro'
   | 'cep'
   | 'uf'
@@ -221,6 +222,7 @@ export function ClientesCadastroTab() {
     email?: string
     sexo?: string
     logradouro?: string
+    numero?: string
     bairro?: string
     cep?: string
     uf?: string
@@ -228,6 +230,9 @@ export function ClientesCadastroTab() {
   }>({})
   const [camposTocados, setCamposTocados] = useState<Partial<Record<CampoClienteForm, boolean>>>({})
   const [cpfEmUso, setCpfEmUso] = useState(false)
+  const [cpfTravandoFoco, setCpfTravandoFoco] = useState(false)
+  const [dataNascimentoTravandoFoco, setDataNascimentoTravandoFoco] = useState(false)
+  const [numeroTravandoFoco, setNumeroTravandoFoco] = useState(false)
   const [telefoneEmUso, setTelefoneEmUso] = useState(false)
   const [emailEmUso, setEmailEmUso] = useState(false)
   const [verificandoCpf, setVerificandoCpf] = useState(false)
@@ -238,8 +243,13 @@ export function ClientesCadastroTab() {
   const telefoneInputRef = useRef<HTMLInputElement>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
   const cpfInputRef = useRef<HTMLInputElement>(null)
+  const dataNascimentoInputRef = useRef<HTMLInputElement>(null)
+  const numeroInputRef = useRef<HTMLInputElement>(null)
   const camposTocadosRef = useRef<Partial<Record<CampoClienteForm, boolean>>>({})
   const cpfResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const emailResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dataNascimentoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const numeroResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cpfValidacaoRef = useRef(0)
 
   const isEdicao = clienteId !== null
@@ -250,6 +260,9 @@ export function ClientesCadastroTab() {
 
   useEffect(() => () => {
     if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
+    if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
+    if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
+    if (numeroResetTimerRef.current) clearTimeout(numeroResetTimerRef.current)
   }, [])
 
   useEffect(() => {
@@ -283,6 +296,7 @@ export function ClientesCadastroTab() {
       'telefone',
       'email',
       'logradouro',
+      'numero',
       'bairro',
       'cep',
       'uf',
@@ -312,6 +326,9 @@ export function ClientesCadastroTab() {
 
   function resetValidacaoFormulario() {
     cancelarLimpezaCpfAgendada()
+    cancelarLimpezaEmailAgendada()
+    cancelarLimpezaDataNascimentoAgendada()
+    cancelarLimpezaNumeroAgendada()
     setCamposTocados({})
     setFieldErrors({})
   }
@@ -321,6 +338,91 @@ export function ClientesCadastroTab() {
       clearTimeout(cpfResetTimerRef.current)
       cpfResetTimerRef.current = null
     }
+    setCpfTravandoFoco(false)
+  }
+
+  function cancelarLimpezaNumeroAgendada() {
+    if (numeroResetTimerRef.current) {
+      clearTimeout(numeroResetTimerRef.current)
+      numeroResetTimerRef.current = null
+    }
+    setNumeroTravandoFoco(false)
+  }
+
+  function limparNumeroParaNovaEntrada() {
+    setForm((prev) => ({ ...prev, endereco: { ...prev.endereco!, numero: '' } }))
+    setFieldErrors((prev) => ({ ...prev, numero: undefined }))
+    setCamposTocados((prev) => {
+      const { numero: _n, ...rest } = prev
+      return rest
+    })
+    setNumeroTravandoFoco(true)
+    focarCampo(numeroInputRef)
+  }
+
+  function agendarLimpezaNumeroAposErro() {
+    cancelarLimpezaNumeroAgendada()
+    setNumeroTravandoFoco(true)
+    focarCampo(numeroInputRef)
+    numeroResetTimerRef.current = setTimeout(() => {
+      numeroResetTimerRef.current = null
+      limparNumeroParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
+  }
+
+  function cancelarLimpezaDataNascimentoAgendada() {
+    if (dataNascimentoResetTimerRef.current) {
+      clearTimeout(dataNascimentoResetTimerRef.current)
+      dataNascimentoResetTimerRef.current = null
+    }
+    setDataNascimentoTravandoFoco(false)
+  }
+
+  function limparDataNascimentoParaNovaEntrada() {
+    setForm((prev) => ({ ...prev, dataNascimento: '' }))
+    setFieldErrors((prev) => ({ ...prev, dataNascimento: undefined }))
+    setCamposTocados((prev) => {
+      const { dataNascimento: _d, ...rest } = prev
+      return rest
+    })
+    setDataNascimentoTravandoFoco(true)
+    focarCampo(dataNascimentoInputRef)
+  }
+
+  function agendarLimpezaDataNascimentoAposErro() {
+    cancelarLimpezaDataNascimentoAgendada()
+    setDataNascimentoTravandoFoco(true)
+    focarCampo(dataNascimentoInputRef)
+    dataNascimentoResetTimerRef.current = setTimeout(() => {
+      dataNascimentoResetTimerRef.current = null
+      limparDataNascimentoParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
+  }
+
+  function cancelarLimpezaEmailAgendada() {
+    if (emailResetTimerRef.current) {
+      clearTimeout(emailResetTimerRef.current)
+      emailResetTimerRef.current = null
+    }
+  }
+
+  function limparEmailParaNovaEntrada() {
+    setEmailEmUso(false)
+    setForm((prev) => ({ ...prev, email: '' }))
+    setFieldErrors((prev) => ({ ...prev, email: undefined }))
+    setCamposTocados((prev) => {
+      const { email: _email, ...rest } = prev
+      return rest
+    })
+    focarCampo(emailInputRef)
+  }
+
+  function agendarLimpezaEmailAposErro() {
+    cancelarLimpezaEmailAgendada()
+    emailResetTimerRef.current = setTimeout(() => {
+      emailResetTimerRef.current = null
+      limparEmailParaNovaEntrada()
+    }, CPF_RESET_DELAY_MS)
   }
 
   function limparCpfParaNovaEntrada() {
@@ -337,6 +439,8 @@ export function ClientesCadastroTab() {
 
   function agendarLimpezaCpfAposErro() {
     cancelarLimpezaCpfAgendada()
+    setCpfTravandoFoco(true)
+    focarCampo(cpfInputRef)
     cpfResetTimerRef.current = setTimeout(() => {
       cpfResetTimerRef.current = null
       limparCpfParaNovaEntrada()
@@ -417,6 +521,16 @@ export function ClientesCadastroTab() {
     }
   }
 
+  function avancarCampo(atual: HTMLElement, form: HTMLElement) {
+    const focusable = Array.from(
+      form.querySelectorAll<HTMLElement>(
+        'input:not([disabled]), button:not([disabled]), select:not([disabled])'
+      )
+    ).filter((el) => el.tabIndex !== -1)
+    const idx = focusable.indexOf(atual)
+    if (idx !== -1 && idx + 1 < focusable.length) focusable[idx + 1].focus()
+  }
+
   function focarCampo(ref: RefObject<HTMLInputElement | null>) {
     requestAnimationFrame(() => {
       ref.current?.focus()
@@ -462,7 +576,8 @@ export function ClientesCadastroTab() {
     if (emailErr) {
       marcarCampoTocado('email')
       setFieldErrors((prev) => ({ ...prev, email: emailErr }))
-      if (refocar) focarCampo(emailInputRef)
+      focarCampo(emailInputRef)
+      agendarLimpezaEmailAposErro()
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, email)
@@ -788,7 +903,26 @@ export function ClientesCadastroTab() {
           noValidate
           className="form-sem-autofill relative flex flex-1 flex-col min-h-0 min-w-0"
           onSubmit={(e) => e.preventDefault()}
-          onFocusCapture={liberarCamposDoFormulario}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' || e.defaultPrevented) return
+            const target = e.target as HTMLElement
+            if (target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON') return
+            e.preventDefault()
+            avancarCampo(target, e.currentTarget)
+          }}
+          onFocusCapture={(e) => {
+            liberarCamposDoFormulario()
+            if (cpfTravandoFoco && e.target !== cpfInputRef.current) {
+              e.preventDefault()
+              focarCampo(cpfInputRef)
+            } else if (dataNascimentoTravandoFoco && e.target !== dataNascimentoInputRef.current) {
+              e.preventDefault()
+              focarCampo(dataNascimentoInputRef)
+            } else if (numeroTravandoFoco && e.target !== numeroInputRef.current) {
+              e.preventDefault()
+              focarCampo(numeroInputRef)
+            }
+          }}
           onMouseDown={liberarCamposDoFormulario}
         >
           <div
@@ -846,7 +980,7 @@ export function ClientesCadastroTab() {
                     if (
                       e.key === 'Tab'
                       && !e.shiftKey
-                      && (cpfImpedeProximosCampos() || verificandoCpf)
+                      && (cpfImpedeProximosCampos() || verificandoCpf || cpfTravandoFoco)
                     ) {
                       e.preventDefault()
                     }
@@ -897,6 +1031,7 @@ export function ClientesCadastroTab() {
                   placeholder="000.000.000-00"
                 />
                 <DataNascimentoInput
+                  ref={dataNascimentoInputRef}
                   label="Data de nascimento *"
                   name="farmacia_data_nascimento"
                   autoComplete={AC.data}
@@ -905,22 +1040,31 @@ export function ClientesCadastroTab() {
                   value={form.dataNascimento ?? ''}
                   onChange={(dataNascimento) => {
                     if (proximosCamposBloqueados) return
+                    cancelarLimpezaDataNascimentoAgendada()
                     setForm({ ...form, dataNascimento })
-                    if (!deveValidarCampo('dataNascimento')) return
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      dataNascimento: dataNascimento.trim()
-                        ? validarDataNascimentoBr(dataNascimento) ?? undefined
-                        : 'Data de nascimento é obrigatória.',
-                    }))
+                    const err = dataNascimento.trim()
+                      ? validarDataNascimentoBr(dataNascimento) ?? undefined
+                      : undefined
+                    if (deveValidarCampo('dataNascimento')) {
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    const err = erroDataNascimento()
+                    if (err) {
+                      e.preventDefault()
+                      marcarCampoTocado('dataNascimento')
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
+                      agendarLimpezaDataNascimentoAposErro()
+                    }
                   }}
                   onBlur={() => {
                     if (proximosCamposBloqueados) return
                     marcarCampoTocado('dataNascimento')
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      dataNascimento: erroDataNascimento() ?? undefined,
-                    }))
+                    const err = erroDataNascimento() ?? undefined
+                    setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
+                    if (err) agendarLimpezaDataNascimentoAposErro()
                   }}
                   error={erroCampo('dataNascimento')}
                   className={inputCompact}
@@ -1000,7 +1144,11 @@ export function ClientesCadastroTab() {
                   if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault()
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    void confirmarEmail(true)
+                    const target = e.currentTarget
+                    const form = target.closest('form')
+                    void confirmarEmail(true).then((valido) => {
+                      if (valido && form) avancarCampo(target, form)
+                    })
                   }
                 }}
                 onPaste={(e) => {
@@ -1077,12 +1225,47 @@ export function ClientesCadastroTab() {
                   className={inputCompact}
                 />
                 <Input
+                  ref={numeroInputRef}
                   label="Nº"
                   name="farmacia_numero"
                   autoComplete={AC.endereco}
                   readOnly={readOnlyAntiAutofill}
+                  maxLength={8}
                   value={form.endereco?.numero ?? ''}
-                  onChange={(e) => setForm(patchEndereco(form, { numero: e.target.value }))}
+                  onChange={(e) => {
+                    cancelarLimpezaNumeroAgendada()
+                    const numero = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8)
+                    setForm(patchEndereco(form, { numero }))
+                    if (deveValidarCampo('numero')) {
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        numero: numero && !/\d/.test(numero)
+                          ? 'Conter pelo menos um dígito (ex: 123, 45A).'
+                          : undefined,
+                      }))
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return
+                    const numero = form.endereco?.numero ?? ''
+                    const err = numero && !/\d/.test(numero)
+                      ? 'Conter pelo menos um dígito (ex: 123, 45A).' : undefined
+                    if (err) {
+                      e.preventDefault()
+                      marcarCampoTocado('numero')
+                      setFieldErrors((prev) => ({ ...prev, numero: err }))
+                      agendarLimpezaNumeroAposErro()
+                    }
+                  }}
+                  onBlur={() => {
+                    marcarCampoTocado('numero')
+                    const numero = form.endereco?.numero ?? ''
+                    const err = numero && !/\d/.test(numero)
+                      ? 'Conter pelo menos um dígito (ex: 123, 45A).' : undefined
+                    setFieldErrors((prev) => ({ ...prev, numero: err }))
+                    if (err) agendarLimpezaNumeroAposErro()
+                  }}
+                  error={erroCampo('numero')}
                   className={inputCompact}
                 />
               </div>
@@ -1092,6 +1275,7 @@ export function ClientesCadastroTab() {
                   name="farmacia_complemento"
                   autoComplete={AC.endereco}
                   readOnly={readOnlyAntiAutofill}
+                  placeholder="Ex: Casa, Apto 12"
                   value={form.endereco?.complemento ?? ''}
                   onChange={(e) =>
                     setForm(patchEndereco(form, { complemento: e.target.value }))
@@ -1255,16 +1439,17 @@ export function ClientesCadastroTab() {
         <div className="shrink-0 pt-3 mt-3 border-t border-white/10 flex flex-wrap gap-2">
           {isEdicao ? (
             <>
-              <Button loading={salvando} disabled={salvando} onClick={tentarAtualizar}>
+              <Button type="button" loading={salvando} disabled={salvando} onClick={tentarAtualizar}>
                 Salvar alterações
               </Button>
-              <Button variant="ghost" size="sm" onClick={limparFormulario}>
+              <Button type="button" variant="ghost" size="sm" onClick={limparFormulario}>
                 <RotateCcw className="size-4" />
                 Novo cliente
               </Button>
             </>
           ) : (
             <Button
+              type="button"
               loading={salvando}
               disabled={salvando || cpfEmUso}
               onClick={tentarCadastro}

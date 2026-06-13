@@ -1,4 +1,4 @@
-import { type InputHTMLAttributes, useId, useRef } from 'react'
+import { type InputHTMLAttributes, forwardRef, useId, useRef } from 'react'
 import { CalendarDays } from 'lucide-react'
 import {
   dataBrParaIsoSafe,
@@ -16,7 +16,7 @@ interface DataNascimentoInputProps
   error?: string
 }
 
-export function DataNascimentoInput({
+export const DataNascimentoInput = forwardRef<HTMLInputElement, DataNascimentoInputProps>(function DataNascimentoInput({
   label = 'Data de nascimento',
   value,
   onChange,
@@ -27,7 +27,7 @@ export function DataNascimentoInput({
   readOnly,
   onBlur,
   ...props
-}: DataNascimentoInputProps) {
+}, ref) {
   const geradoId = useId()
   const inputId = id ?? geradoId.replace(/:/g, '')
   const pickerRef = useRef<HTMLInputElement>(null)
@@ -58,6 +58,7 @@ export function DataNascimentoInput({
       <div className="relative">
         <input
           {...props}
+          ref={ref}
           id={inputId}
           type="text"
           inputMode="numeric"
@@ -94,4 +95,4 @@ export function DataNascimentoInput({
       {error && <p className="text-xs text-coral leading-snug">{error}</p>}
     </div>
   )
-}
+})
