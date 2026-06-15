@@ -54,6 +54,7 @@ const MSG_TELEFONE_DUPLICADO = 'Telefone já cadastrado em outro cliente.'
 const MSG_EMAIL_DUPLICADO = 'E-mail já cadastrado em outro cliente.'
 const MSG_CPF_DUPLICADO = 'CPF já cadastrado. Use Buscar por CPF para editar.'
 const CPF_RESET_DELAY_MS = 3000
+const REQUIRED_MSG_DELAY_MS = 2000
 
 type CampoClienteForm =
   | 'nome'
@@ -252,6 +253,12 @@ export function ClientesCadastroTab() {
   const dataNascimentoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const numeroResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const telefoneResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sexoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const nomeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const logradouroResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bairroResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cepResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const ufResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cpfValidacaoRef = useRef(0)
 
   const isEdicao = clienteId !== null
@@ -266,6 +273,12 @@ export function ClientesCadastroTab() {
     if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
     if (numeroResetTimerRef.current) clearTimeout(numeroResetTimerRef.current)
     if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
+    if (sexoResetTimerRef.current) clearTimeout(sexoResetTimerRef.current)
+    if (nomeResetTimerRef.current) clearTimeout(nomeResetTimerRef.current)
+    if (logradouroResetTimerRef.current) clearTimeout(logradouroResetTimerRef.current)
+    if (bairroResetTimerRef.current) clearTimeout(bairroResetTimerRef.current)
+    if (cepResetTimerRef.current) clearTimeout(cepResetTimerRef.current)
+    if (ufResetTimerRef.current) clearTimeout(ufResetTimerRef.current)
   }, [])
 
   useEffect(() => {
@@ -383,20 +396,22 @@ export function ClientesCadastroTab() {
   }
 
   function limparDataNascimentoParaNovaEntrada() {
+    setDataNascimentoTravandoFoco(false)
     setForm((prev) => ({ ...prev, dataNascimento: '' }))
     setFieldErrors((prev) => ({ ...prev, dataNascimento: undefined }))
     setCamposTocados((prev) => {
       const { dataNascimento: _d, ...rest } = prev
       return rest
     })
-    setDataNascimentoTravandoFoco(true)
     focarCampo(dataNascimentoInputRef)
   }
 
-  function agendarLimpezaDataNascimentoAposErro() {
+  function agendarLimpezaDataNascimentoAposErro(travarFoco = true) {
     cancelarLimpezaDataNascimentoAgendada()
-    setDataNascimentoTravandoFoco(true)
-    focarCampo(dataNascimentoInputRef)
+    if (travarFoco) {
+      setDataNascimentoTravandoFoco(true)
+      focarCampo(dataNascimentoInputRef)
+    }
     dataNascimentoResetTimerRef.current = setTimeout(() => {
       dataNascimentoResetTimerRef.current = null
       limparDataNascimentoParaNovaEntrada()
@@ -439,20 +454,22 @@ export function ClientesCadastroTab() {
 
   function limparTelefoneParaNovaEntrada() {
     setTelefoneEmUso(false)
+    setTelefoneTravandoFoco(false)
     setForm((prev) => ({ ...prev, telefone: '' }))
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
     setCamposTocados((prev) => {
       const { telefone: _t, ...rest } = prev
       return rest
     })
-    setTelefoneTravandoFoco(false)
     focarCampo(telefoneInputRef)
   }
 
-  function agendarLimpezaTelefoneAposErro() {
+  function agendarLimpezaTelefoneAposErro(travarFoco = true) {
     cancelarLimpezaTelefoneAgendada()
-    setTelefoneTravandoFoco(true)
-    focarCampo(telefoneInputRef)
+    if (travarFoco) {
+      setTelefoneTravandoFoco(true)
+      focarCampo(telefoneInputRef)
+    }
     telefoneResetTimerRef.current = setTimeout(() => {
       telefoneResetTimerRef.current = null
       limparTelefoneParaNovaEntrada()
@@ -461,6 +478,7 @@ export function ClientesCadastroTab() {
 
   function limparCpfParaNovaEntrada() {
     setCpfEmUso(false)
+    setCpfTravandoFoco(false)
     setForm((prev) => ({ ...prev, cpf: '' }))
     setFieldErrors((prev) => ({ ...prev, cpf: undefined }))
     setCamposTocados((prev) => {
@@ -471,10 +489,12 @@ export function ClientesCadastroTab() {
     focarCampo(cpfInputRef)
   }
 
-  function agendarLimpezaCpfAposErro() {
+  function agendarLimpezaCpfAposErro(travarFoco = true) {
     cancelarLimpezaCpfAgendada()
-    setCpfTravandoFoco(true)
-    focarCampo(cpfInputRef)
+    if (travarFoco) {
+      setCpfTravandoFoco(true)
+      focarCampo(cpfInputRef)
+    }
     cpfResetTimerRef.current = setTimeout(() => {
       cpfResetTimerRef.current = null
       limparCpfParaNovaEntrada()
@@ -492,8 +512,7 @@ export function ClientesCadastroTab() {
     if (cpfErr) {
       setFieldErrors((prev) => ({ ...prev, cpf: cpfErr }))
       limparErrosCamposAdjacentesAoCpf()
-      focarCampo(cpfInputRef)
-      agendarLimpezaCpfAposErro()
+      agendarLimpezaCpfAposErro(false)
       return
     }
 
@@ -601,8 +620,8 @@ export function ClientesCadastroTab() {
   function cpfImpedeProximosCampos(): boolean {
     if (isEdicao) return false
     if (verificandoCpf || cpfBloqueado()) return true
-    if (camposTocados.cpf && Boolean(fieldErrors.cpf)) return true
     const digits = onlyDigits(form.cpf)
+    if (digits.length > 0 && camposTocados.cpf && Boolean(fieldErrors.cpf)) return true
     if (digits.length === 11 && validarCpf(form.cpf)) return true
     return false
   }
@@ -612,12 +631,12 @@ export function ClientesCadastroTab() {
     if (telefoneErr) {
       marcarCampoTocado('telefone')
       setFieldErrors((prev) => ({ ...prev, telefone: telefoneErr }))
-      agendarLimpezaTelefoneAposErro()
+      agendarLimpezaTelefoneAposErro(false)
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, undefined)
     if (contato.telefoneEmUso) {
-      agendarLimpezaTelefoneAposErro()
+      agendarLimpezaTelefoneAposErro(false)
       return false
     }
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
@@ -682,7 +701,7 @@ export function ClientesCadastroTab() {
 
   function erroDataNascimento(): string | null {
     if (!form.dataNascimento?.trim()) {
-      return 'Data de nascimento é obrigatória.'
+      return 'Lembre-se: Campo Obrigatório.'
     }
     return validarDataNascimentoBr(form.dataNascimento)
   }
@@ -943,8 +962,7 @@ export function ClientesCadastroTab() {
               {isEdicao ? 'Editar cliente' : 'Cadastrar cliente'}
             </h2>
             <p className="text-xs text-[#8b9cb3] mt-0.5">
-              Preencha os dados abaixo ou busque pelo CPF à direita. Lembre-se: campos com
-              asterisco (*) são obrigatórios.
+              Preencha os dados abaixo ou busque pelo CPF à direita. Lembre-se: para o Cliente ser Cadastrado é necessário preencher todos os campos obrigatórios.
             </p>
           </div>
           {isEdicao && (
@@ -1016,6 +1034,17 @@ export function ClientesCadastroTab() {
                 }}
                 onBlur={() => {
                   if (focoDirecionado()) return
+                  if (!sanitizeNomePessoa(form.nome).trim()) {
+                    marcarCampoTocado('nome')
+                    setFieldErrors((prev) => ({ ...prev, nome: 'Lembre-se: Campo Obrigatório.' }))
+                    if (nomeResetTimerRef.current) clearTimeout(nomeResetTimerRef.current)
+                    nomeResetTimerRef.current = setTimeout(() => {
+                      nomeResetTimerRef.current = null
+                      setFieldErrors((prev) => ({ ...prev, nome: undefined }))
+                      setCamposTocados((prev) => { const { nome: _n, ...rest } = prev; return rest })
+                    }, REQUIRED_MSG_DELAY_MS)
+                    return
+                  }
                   marcarCampoTocado('nome')
                   setFieldErrors((prev) => ({
                     ...prev,
@@ -1042,6 +1071,19 @@ export function ClientesCadastroTab() {
                       && (cpfImpedeProximosCampos() || verificandoCpf || cpfTravandoFoco)
                     ) {
                       e.preventDefault()
+                    }
+                    if (e.key === 'Enter' && !isEdicao && onlyDigits(form.cpf).length === 0) {
+                      marcarCampoTocado('cpf')
+                      setFieldErrors((prev) => ({ ...prev, cpf: 'Lembre-se: Campo Obrigatório.' }))
+                      if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
+                      cpfResetTimerRef.current = setTimeout(() => {
+                        cpfResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, cpf: undefined }))
+                        setCamposTocados((prev) => {
+                          const { cpf: _cpf, ...rest } = prev
+                          return rest
+                        })
+                      }, REQUIRED_MSG_DELAY_MS)
                     }
                   }}
                   onChange={(e) => {
@@ -1079,12 +1121,23 @@ export function ClientesCadastroTab() {
                   onBlur={() => {
                     if (isEdicao) return
                     if (onlyDigits(form.cpf).length === 11) return
+                    if (onlyDigits(form.cpf).length === 0) {
+                      marcarCampoTocado('cpf')
+                      setFieldErrors((prev) => ({ ...prev, cpf: 'Lembre-se: Campo Obrigatório.' }))
+                      if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
+                      cpfResetTimerRef.current = setTimeout(() => {
+                        cpfResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, cpf: undefined }))
+                        setCamposTocados((prev) => { const { cpf: _cpf, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('cpf')
                     const cpfErr = validarCpf(form.cpf)
                     setFieldErrors((prev) => ({ ...prev, cpf: cpfErr ?? undefined }))
                     if (cpfErr) {
                       limparErrosCamposAdjacentesAoCpf()
-                      agendarLimpezaCpfAposErro()
+                      agendarLimpezaCpfAposErro(false)
                     }
                   }}
                   error={erroCampo('cpf')}
@@ -1113,20 +1166,42 @@ export function ClientesCadastroTab() {
                   }}
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter') return
+                    if (!form.dataNascimento?.trim()) {
+                      marcarCampoTocado('dataNascimento')
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: 'Lembre-se: Campo Obrigatório.' }))
+                      if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
+                      dataNascimentoResetTimerRef.current = setTimeout(() => {
+                        dataNascimentoResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, dataNascimento: undefined }))
+                        setCamposTocados((prev) => { const { dataNascimento: _d, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     const err = erroDataNascimento()
                     if (err) {
                       e.preventDefault()
                       marcarCampoTocado('dataNascimento')
                       setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
-                      agendarLimpezaDataNascimentoAposErro()
+                      agendarLimpezaDataNascimentoAposErro(false)
                     }
                   }}
                   onBlur={() => {
                     if (focoDirecionado() || proximosCamposBloqueados) return
+                    if (!form.dataNascimento?.trim()) {
+                      marcarCampoTocado('dataNascimento')
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: 'Lembre-se: Campo Obrigatório.' }))
+                      if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
+                      dataNascimentoResetTimerRef.current = setTimeout(() => {
+                        dataNascimentoResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, dataNascimento: undefined }))
+                        setCamposTocados((prev) => { const { dataNascimento: _d, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('dataNascimento')
                     const err = erroDataNascimento() ?? undefined
                     setFieldErrors((prev) => ({ ...prev, dataNascimento: err }))
-                    if (err) agendarLimpezaDataNascimentoAposErro()
+                    if (err) agendarLimpezaDataNascimentoAposErro(false)
                   }}
                   error={erroCampo('dataNascimento')}
                   className={inputCompact}
@@ -1147,6 +1222,17 @@ export function ClientesCadastroTab() {
                   }}
                   onBlur={() => {
                     if (focoDirecionado() || proximosCamposBloqueados) return
+                    if (!(form.sexo ?? '').trim()) {
+                      marcarCampoTocado('sexo')
+                      setFieldErrors((prev) => ({ ...prev, sexo: 'Lembre-se: Campo Obrigatório.' }))
+                      if (sexoResetTimerRef.current) clearTimeout(sexoResetTimerRef.current)
+                      sexoResetTimerRef.current = setTimeout(() => {
+                        sexoResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, sexo: undefined }))
+                        setCamposTocados((prev) => { const { sexo: _s, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('sexo')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1184,8 +1270,31 @@ export function ClientesCadastroTab() {
                       : undefined,
                   }))
                 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !onlyDigits(form.telefone ?? '').length) {
+                    marcarCampoTocado('telefone')
+                    setFieldErrors((prev) => ({ ...prev, telefone: 'Lembre-se: Campo Obrigatório.' }))
+                    if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
+                    telefoneResetTimerRef.current = setTimeout(() => {
+                      telefoneResetTimerRef.current = null
+                      setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
+                      setCamposTocados((prev) => { const { telefone: _t, ...rest } = prev; return rest })
+                    }, REQUIRED_MSG_DELAY_MS)
+                  }
+                }}
                 onBlur={() => {
                   if (focoDirecionado()) return
+                  if (!onlyDigits(form.telefone ?? '').length) {
+                    marcarCampoTocado('telefone')
+                    setFieldErrors((prev) => ({ ...prev, telefone: 'Lembre-se: Campo Obrigatório.' }))
+                    if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
+                    telefoneResetTimerRef.current = setTimeout(() => {
+                      telefoneResetTimerRef.current = null
+                      setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
+                      setCamposTocados((prev) => { const { telefone: _t, ...rest } = prev; return rest })
+                    }, REQUIRED_MSG_DELAY_MS)
+                    return
+                  }
                   cancelarLimpezaTelefoneAgendada()
                   void confirmarTelefone()
                 }}
@@ -1206,6 +1315,18 @@ export function ClientesCadastroTab() {
                 onKeyDown={(e) => {
                   if (e.key === ' ' || e.key === 'Spacebar') e.preventDefault()
                   if (e.key === 'Enter') {
+                    const emailValue = sanitizeEmailInput(form.email ?? '')
+                    if (!emailValue.trim()) {
+                      marcarCampoTocado('email')
+                      setFieldErrors((prev) => ({ ...prev, email: 'Lembre-se: Campo Obrigatório.' }))
+                      if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
+                      emailResetTimerRef.current = setTimeout(() => {
+                        emailResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, email: undefined }))
+                        setCamposTocados((prev) => { const { email: _email, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     e.preventDefault()
                     const target = e.currentTarget
                     const form = target.closest('form')
@@ -1247,6 +1368,18 @@ export function ClientesCadastroTab() {
                 }}
                 onBlur={() => {
                   if (focoDirecionado()) return
+                  const emailValue = sanitizeEmailInput(form.email ?? '')
+                  if (!emailValue.trim()) {
+                    marcarCampoTocado('email')
+                    setFieldErrors((prev) => ({ ...prev, email: 'Lembre-se: Campo Obrigatório.' }))
+                    if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
+                    emailResetTimerRef.current = setTimeout(() => {
+                      emailResetTimerRef.current = null
+                      setFieldErrors((prev) => ({ ...prev, email: undefined }))
+                      setCamposTocados((prev) => { const { email: _email, ...rest } = prev; return rest })
+                    }, REQUIRED_MSG_DELAY_MS)
+                    return
+                  }
                   marcarCampoTocado('email')
                   void confirmarEmail()
                 }}
@@ -1279,6 +1412,17 @@ export function ClientesCadastroTab() {
                   }}
                   onBlur={() => {
                     if (focoDirecionado()) return
+                    if (!(form.endereco?.logradouro ?? '').trim()) {
+                      marcarCampoTocado('logradouro')
+                      setFieldErrors((prev) => ({ ...prev, logradouro: 'Lembre-se: Campo Obrigatório.' }))
+                      if (logradouroResetTimerRef.current) clearTimeout(logradouroResetTimerRef.current)
+                      logradouroResetTimerRef.current = setTimeout(() => {
+                        logradouroResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, logradouro: undefined }))
+                        setCamposTocados((prev) => { const { logradouro: _l, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('logradouro')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1366,6 +1510,17 @@ export function ClientesCadastroTab() {
                   }}
                   onBlur={() => {
                     if (focoDirecionado()) return
+                    if (!(form.endereco?.bairro ?? '').trim()) {
+                      marcarCampoTocado('bairro')
+                      setFieldErrors((prev) => ({ ...prev, bairro: 'Lembre-se: Campo Obrigatório.' }))
+                      if (bairroResetTimerRef.current) clearTimeout(bairroResetTimerRef.current)
+                      bairroResetTimerRef.current = setTimeout(() => {
+                        bairroResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, bairro: undefined }))
+                        setCamposTocados((prev) => { const { bairro: _b, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('bairro')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1393,6 +1548,17 @@ export function ClientesCadastroTab() {
                   }}
                   onBlur={() => {
                     if (focoDirecionado()) return
+                    if (!onlyDigits(form.endereco?.cep ?? '')) {
+                      marcarCampoTocado('cep')
+                      setFieldErrors((prev) => ({ ...prev, cep: 'Lembre-se: Campo Obrigatório.' }))
+                      if (cepResetTimerRef.current) clearTimeout(cepResetTimerRef.current)
+                      cepResetTimerRef.current = setTimeout(() => {
+                        cepResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, cep: undefined }))
+                        setCamposTocados((prev) => { const { cep: _c, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('cep')
                     setFieldErrors((prev) => ({
                       ...prev,
@@ -1433,6 +1599,17 @@ export function ClientesCadastroTab() {
                   }}
                   onBlur={() => {
                     if (focoDirecionado()) return
+                    if (!(form.endereco?.uf ?? '').trim()) {
+                      marcarCampoTocado('uf')
+                      setFieldErrors((prev) => ({ ...prev, uf: 'Lembre-se: Campo Obrigatório.' }))
+                      if (ufResetTimerRef.current) clearTimeout(ufResetTimerRef.current)
+                      ufResetTimerRef.current = setTimeout(() => {
+                        ufResetTimerRef.current = null
+                        setFieldErrors((prev) => ({ ...prev, uf: undefined }))
+                        setCamposTocados((prev) => { const { uf: _u, ...rest } = prev; return rest })
+                      }, REQUIRED_MSG_DELAY_MS)
+                      return
+                    }
                     marcarCampoTocado('uf')
                     setFieldErrors((prev) => ({
                       ...prev,

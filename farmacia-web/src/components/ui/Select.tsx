@@ -42,6 +42,7 @@ export function Select({
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const focusFromMouseRef = useRef(false)
 
   const selected = options.find((o) => o.value === value)
 
@@ -175,6 +176,11 @@ export function Select({
         type="button"
         disabled={disabled || loading}
         onClick={toggleOpen}
+        onMouseDown={() => { focusFromMouseRef.current = true }}
+        onFocus={() => {
+          if (focusFromMouseRef.current) { focusFromMouseRef.current = false; return }
+          if (!disabled && !loading && !open) { updateMenuPosition(); setOpen(true) }
+        }}
         onBlur={onBlur}
         className={`w-full flex items-center justify-between gap-2 px-3 sm:px-4 rounded-xl glass text-left
           focus:outline-none focus:ring-2 focus:ring-mint/30 disabled:opacity-50

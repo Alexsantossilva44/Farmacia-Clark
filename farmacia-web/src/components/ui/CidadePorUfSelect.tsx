@@ -36,6 +36,7 @@ export function CidadePorUfSelect({
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const focusFromMouseRef = useRef(false)
 
   const opcoes = useMemo(() => listarOpcoesCidadesPorUf(uf), [uf])
   const filtradas = useMemo(() => filtrarOpcoesCidades(opcoes, filtro), [opcoes, filtro])
@@ -66,8 +67,13 @@ export function CidadePorUfSelect({
   }, [open])
 
   useEffect(() => {
-    setOpen(false)
     setFiltro('')
+    if (uf) {
+      updateMenuPosition()
+      setOpen(true)
+    } else {
+      setOpen(false)
+    }
   }, [uf])
 
   function updateMenuPosition() {
@@ -172,6 +178,11 @@ export function CidadePorUfSelect({
         aria-label={label}
         disabled={bloqueado}
         onClick={toggleOpen}
+        onMouseDown={() => { focusFromMouseRef.current = true }}
+        onFocus={() => {
+          if (focusFromMouseRef.current) { focusFromMouseRef.current = false; return }
+          if (!bloqueado && !open) { updateMenuPosition(); setFiltro(''); setOpen(true) }
+        }}
         className={`w-full flex items-center justify-between gap-2 px-3 sm:px-4 rounded-xl glass text-left
           focus:outline-none focus:ring-2 focus:ring-mint/30 disabled:opacity-50
           ${open ? 'ring-2 ring-mint/30 border-mint/20' : ''}
