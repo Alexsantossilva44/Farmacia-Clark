@@ -19,7 +19,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputClassName = `w-full px-4 py-3 rounded-xl glass bg-white/[0.03] text-white placeholder:text-white/30
       focus:outline-none focus:ring-2 focus:ring-mint/40 focus:border-mint/30
       transition-all duration-200 ${exibirToggle ? 'pr-11' : ''}
-      ${error ? 'border-coral/50 ring-coral/20' : ''} ${className}`
+      ${error ? 'border-coral/50' : ''} ${className}`
 
     return (
       <div className="min-w-0 space-y-1.5">
@@ -35,6 +35,19 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             className={inputClassName}
             {...props}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                const focusables = Array.from(
+                  document.querySelectorAll<HTMLElement>(
+                    'input:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"])',
+                  ),
+                ).filter((el) => el.offsetParent !== null)
+                const idx = focusables.indexOf(e.currentTarget)
+                focusables[idx + 1]?.focus()
+              }
+              props.onKeyDown?.(e)
+            }}
           />
           {exibirToggle && (
             <button
@@ -49,7 +62,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
         </div>
-        {error && <p className="text-sm text-coral">{error}</p>}
+        <p className={`text-sm min-h-[1.25rem] ${error ? 'text-coral' : 'invisible'}`}>
+          {error ?? ' '}
+        </p>
       </div>
     )
   },
