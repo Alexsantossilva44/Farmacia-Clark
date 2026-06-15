@@ -612,6 +612,24 @@ export function ClientesCadastroTab() {
     )
   }
 
+  function calcularProgresso(): number {
+    const e = form.endereco
+    const campos = [
+      form.nome.trim().length > 0,
+      onlyDigits(form.cpf).length === 11,
+      (form.dataNascimento ?? '').trim().length > 0,
+      (form.sexo ?? '').trim().length > 0,
+      onlyDigits(form.telefone ?? '').length >= 10,
+      (form.email ?? '').trim().length > 0,
+      (e?.logradouro ?? '').trim().length > 0,
+      (e?.bairro ?? '').trim().length > 0,
+      onlyDigits(e?.cep ?? '').length === 8,
+      (e?.uf ?? '').trim().length > 0,
+      (e?.cidade ?? '').trim().length > 0,
+    ]
+    return Math.round((campos.filter(Boolean).length / campos.length) * 100)
+  }
+
   function cpfBloqueado(): boolean {
     return cpfEmUso || fieldErrors.cpf === MSG_CPF_DUPLICADO
   }
@@ -631,12 +649,12 @@ export function ClientesCadastroTab() {
     if (telefoneErr) {
       marcarCampoTocado('telefone')
       setFieldErrors((prev) => ({ ...prev, telefone: telefoneErr }))
-      agendarLimpezaTelefoneAposErro(false)
+      agendarLimpezaTelefoneAposErro()
       return false
     }
     const contato = await verificarContatoDisponivel(form.telefone, undefined)
     if (contato.telefoneEmUso) {
-      agendarLimpezaTelefoneAposErro(false)
+      agendarLimpezaTelefoneAposErro()
       return false
     }
     setFieldErrors((prev) => ({ ...prev, telefone: undefined }))
@@ -812,14 +830,13 @@ export function ClientesCadastroTab() {
       setClienteId(null)
       setCpfClienteCarregado(null)
       if (err instanceof ApiError && err.status === 404) {
-        const cpf = onlyDigits(cpfBusca)
-        setForm(formularioNovoComCpf(cpf))
+        setForm(formularioNovoComCpf(''))
         resetValidacaoFormulario()
         setCpfEmUso(false)
         setTelefoneEmUso(false)
         setEmailEmUso(false)
         setError('')
-        setSuccess('CPF não cadastrado. Preencha os dados para novo cliente.')
+        setSuccess('CPF não cadastrado.')
       } else {
         setError(traduzirErroApi(err))
         setSuccess('')
@@ -1700,8 +1717,13 @@ export function ClientesCadastroTab() {
               loading={salvando}
               disabled={salvando || !formularioPronto()}
               onClick={tentarCadastro}
+              className="relative overflow-hidden"
             >
-              Cadastrar cliente
+              <div
+                className="absolute inset-y-0 right-0 bg-black/50 transition-all duration-500"
+                style={{ width: `${100 - calcularProgresso()}%` }}
+              />
+              <span className="relative">Cadastrar cliente</span>
             </Button>
           )}
         </div>
@@ -1722,11 +1744,14 @@ export function ClientesCadastroTab() {
             value={cpfBusca}
             onChange={(e) => {
               setCpfBusca(formatCpfDisplay(e.target.value))
-              if (clienteId && onlyDigits(e.target.value).length === 11) {
-                const cpf = onlyDigits(e.target.value)
-                if (cpf !== cpfClienteCarregado) {
-                  prepararNovoCadastroComCpf(cpf)
-                }
+              if (clienteId) {
+                setClienteId(null)
+                setCpfClienteCarregado(null)
+                setCpfEmUso(false)
+                setTelefoneEmUso(false)
+                setEmailEmUso(false)
+                resetValidacaoFormulario()
+                setForm(formularioNovoComCpf(''))
               }
             }}
             onBlur={sincronizarCpfBuscaNoForm}
@@ -1762,7 +1787,7 @@ export function ClientesCadastroTab() {
             <p className="text-xs text-coral mb-3 shrink-0 leading-relaxed">{error}</p>
           )}
           {success && (
-            <p className="text-xs text-mint mb-3 shrink-0 leading-relaxed">{success}</p>
+            <p className="text-xs text-mint mb-3 shrink-0 leading-relaxed text-center">{success}</p>
           )}
 
           {form.nome.trim() ? (
