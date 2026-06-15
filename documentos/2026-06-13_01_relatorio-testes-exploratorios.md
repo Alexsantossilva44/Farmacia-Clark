@@ -105,7 +105,7 @@ CADASTRO DE CLIENTES — PR #1
 | **A-01** | API | POST /clientes com CPF inválido → 422 com mensagem de campo | ✅ PASSOU | Status real é 422 (não 400); API rejeita CPF com dígito verificador inválido com `"CPF inválido."`; espera CPF sem formatação (só 11 dígitos) | — |
 | **A-02** | API | POST /clientes com CPF duplicado → 409 Conflict | ✅ PASSOU | Nenhum — 409 com `"Já existe um cliente com este CPF."` | — |
 | **A-03** | API | POST /clientes sem campos obrigatórios → 422 com lista de violações | ✅ PASSOU | Status real é 422; apenas `nome` e `cpf` aparecem em `fields` — demais campos validados em camadas internas (domínio/use case) | — |
-| **A-04** | API | GET /clientes?nome=João → retorna clientes filtrados corretamente | ❌ FALHOU | Endpoint de busca por nome **não implementado** no backend; 405 Method Not Allowed. Adaptado: GET /cpf/{cpf} retornou 200 corretamente | 🟡 Média |
+| **A-04** | API | GET /clientes?nome=João → retorna clientes filtrados corretamente | ✅ CORRIGIDO | Endpoint implementado: `GET /api/v1/clientes?nome=` com busca parcial case-insensitive e sem acentos (unaccent); retorna 200 com lista de clientes filtrados | 🟡 Média |
 
 ---
 
@@ -115,8 +115,8 @@ CADASTRO DE CLIENTES — PR #1
 |-----------|-----------|
 | Total de testes executados | 39 |
 | ✅ Passou (sem bug) | 28 |
-| ✅ Corrigido (bug encontrado e corrigido) | 10 |
-| ❌ Falhou — funcionalidade ausente | 1 |
+| ✅ Corrigido (bug encontrado e corrigido) | 11 |
+| ❌ Falhou — funcionalidade ausente | 0 |
 | 🔴 Críticos | 0 |
 | 🟠 Alta prioridade | 5 (D-08, C-07, C-10, N-01, T-01) |
 | 🟡 Média prioridade | 6 (D-09, E-06, E-07, N-02, EN-01, A-04) |
