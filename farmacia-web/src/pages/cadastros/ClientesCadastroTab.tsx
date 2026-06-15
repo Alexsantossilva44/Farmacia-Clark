@@ -962,7 +962,7 @@ export function ClientesCadastroTab() {
               {isEdicao ? 'Editar cliente' : 'Cadastrar cliente'}
             </h2>
             <p className="text-xs text-[#8b9cb3] mt-0.5">
-              Preencha os dados abaixo ou busque pelo CPF à direita. Lembre-se: para o Cliente ser Cadastrado é necessário preencher todos os campos obrigatórios.
+              Preencha os dados abaixo ou busque pelo CPF à direita. Lembre-se: para o Cliente ser Cadastrado é necessário preencher todos os campos obrigatórios(*).
             </p>
           </div>
           {isEdicao && (
