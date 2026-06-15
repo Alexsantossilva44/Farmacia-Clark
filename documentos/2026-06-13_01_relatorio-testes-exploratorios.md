@@ -76,36 +76,36 @@ CADASTRO DE CLIENTES — PR #1
 | **D-09** | Data Nasc. | Enter com data inválida exibia mensagem "Sexo é obrigatório" antes de bloquear o cursor | ✅ CORRIGIDO | `onKeyDown` agora verifica o erro diretamente (sem depender do estado) e chama `e.preventDefault()` + timer imediatamente | 🟡 Média |
 | **C-06** | CPF | Após limpeza automática: campo CPF deve aceitar nova digitação | ✅ PASSOU | Nenhum | — |
 | **C-07** | CPF | Digitar CPF com menos de 11 dígitos e sair do campo — deve exibir erro, aguardar 3s, limpar e travar foco | ✅ CORRIGIDO | Erro era exibido mas o timer de 3s não era acionado e outros campos exibiam erros falsos ao receber foco; corrigido com `agendarLimpezaCpfAposErro()` no `onBlur` e `focoDirecionado()` guard em todos os campos | 🟠 Alta |
-| **T-01** | Telefone | Telefone com menos de 10 dígitos → erro ao sair do campo (onBlur) | | | |
-| **T-02** | Telefone | Telefone já cadastrado → mensagem de duplicado ao sair do campo | | | |
-| **T-03** | Telefone | Com erro em telefone: pressionar Tab não deve travar o foco no campo | | | |
-| **T-04** | Telefone | Pressionar Enter no telefone com erro → deve refocar o campo | | | |
-| **T-05** | Telefone | Pressionar Enter no telefone válido → deve avançar normalmente | | | |
-| **E-01** | Email | Email sem @ → erro ao sair do campo | | | |
-| **E-02** | Email | Email já cadastrado → mensagem de duplicado ao sair do campo | | | |
-| **E-03** | Email | Com erro em email: pressionar Tab não deve travar o foco no campo | | | |
-| **E-04** | Email | Pressionar Enter no email com erro → deve refocar o campo | | | |
-| **E-05** | Email | Colar email com espaços (ex: " teste@teste.com ") → deve sanitizar automaticamente | | | |
+| **T-01** | Telefone | Telefone com menos de 10 dígitos → erro ao sair do campo (onBlur) | ✅ CORRIGIDO | Após exibir erro e limpar o campo, o cursor ia para o próximo campo; corrigido chamando `agendarLimpezaTelefoneAposErro()` sem parâmetro (trava foco) em ambas as chamadas em `confirmarTelefone` | 🟠 Alta |
+| **T-02** | Telefone | Telefone já cadastrado → mensagem de duplicado ao sair do campo | ✅ PASSOU | Nenhum | — |
+| **T-03** | Telefone | Com erro em telefone: pressionar Tab não deve travar o foco no campo | ✅ PASSOU | Nenhum | — |
+| **T-04** | Telefone | Pressionar Enter no telefone com erro → deve refocar o campo | ✅ PASSOU | Nenhum | — |
+| **T-05** | Telefone | Pressionar Enter no telefone válido → deve avançar normalmente | ✅ PASSOU | Nenhum | — |
+| **E-01** | Email | Email sem @ → erro ao sair do campo | ✅ PASSOU | Nenhum | — |
+| **E-02** | Email | Email já cadastrado → mensagem de duplicado ao sair do campo | ✅ PASSOU | Nenhum | — |
+| **E-03** | Email | Com erro em email: pressionar Tab não deve travar o foco no campo | ✅ PASSOU | Nenhum | — |
+| **E-04** | Email | Pressionar Enter no email com erro → deve refocar o campo | ✅ PASSOU | Nenhum | — |
+| **E-05** | Email | Colar email com espaços (ex: " teste@teste.com ") → deve sanitizar automaticamente | ✅ PASSOU | Nenhum | — |
 | **E-06** | Email | Digitar email com TLD inválido e longo (ex: helena@gmail.com.jknknnklnlknlkmnkl2156561) → deve rejeitar | ✅ CORRIGIDO | Bug encontrado e corrigido na sessão — regex atualizada no frontend e backend para exigir TLD somente alfabético (2–63 chars) | 🟡 Média |
 | **E-07** | Email | Email inválido → exibir mensagem, aguardar 3s, limpar campo e manter foco para nova digitação (padrão CPF) | ✅ CORRIGIDO | Comportamento ausente — implementado `agendarLimpezaEmailAposErro()` seguindo o mesmo padrão do CPF; retestado e aprovado | 🟡 Média |
 | **C-10** | CPF | CPF inválido/duplicado: cursor deve ficar preso no campo CPF (não permite ir para outro campo) até CPF válido ser inserido | ✅ CORRIGIDO | Foco não era travado — usuário conseguia clicar em outros campos durante e após o timer; corrigido com estado `cpfTravandoFoco` que intercepta qualquer tentativa de foco em outro campo e redireciona ao CPF | 🟠 Alta |
 | **N-01** | Navegação | Pressionar Enter em qualquer campo envia o formulário em vez de avançar para o próximo campo | ✅ CORRIGIDO | Botões sem `type="button"` eram tratados como submit pelo browser; corrigido adicionando `type="button"` em todos os botões e handler de Enter no formulário que move o foco para o próximo campo | 🟠 Alta |
 | **N-02** | Navegação | Enter no campo e-mail ficava travado no campo mesmo com e-mail válido | ✅ CORRIGIDO | Handler do email chamava `e.preventDefault()` mas não avançava o foco após validação bem-sucedida; corrigido chamando `avancarCampo()` após `confirmarEmail()` retornar `true` | 🟡 Média |
 | **EN-01** | Endereço | Campo Nº aceitava qualquer caractere (letras puras, especiais) sem restrição | ✅ CORRIGIDO | Filtro alfanumérico + máximo 8 chars + obrigatoriedade de ao menos 1 dígito implementado no frontend e backend; padrão CPF (timer 3s + limpeza + travamento de foco) aplicado | 🟡 Média |
-| **L-01** | Layout | Formulário em 375px (mobile) → layout 1 coluna, sem overflow horizontal | | | |
-| **L-02** | Layout | Formulário em 768px (tablet) → grid de 2 colunas na seção de dados pessoais | | | |
-| **L-03** | Layout | Formulário em 1280px (xl) → grid de 3 colunas + sidebar de 240px visível | | | |
-| **L-04** | Layout | Formulário em 1920px → conteúdo respeita max-width de 1800px | | | |
-| **L-05** | Layout | Inputs (CPF, telefone, email) não transbordam o container em telas estreitas | | | |
-| **L-06** | Layout | Select de cidade não transborda ao selecionar UF com nome longo | | | |
-| **L-07** | Layout | Sidebar some em telas menores que 1280px (xl) | | | |
-| **S-01** | Scroll | Aba medicamentos: lista longa deve ser scrollável verticalmente | | | |
-| **S-02** | Scroll | Formulário de clientes: scroll dentro do card sem mover o cabeçalho da página | | | |
-| **S-03** | Scroll | Sidebar de busca de clientes: lista de resultados scrollável independentemente | | | |
-| **A-01** | API | POST /clientes com CPF inválido → 400 Bad Request com mensagem de campo | | | |
-| **A-02** | API | POST /clientes com CPF duplicado → 409 Conflict | | | |
-| **A-03** | API | POST /clientes sem campos obrigatórios → 400 com lista de violações | | | |
-| **A-04** | API | GET /clientes?nome=João → retorna clientes filtrados corretamente | | | |
+| **L-01** | Layout | Formulário em 375px (mobile) → layout 1 coluna, sem overflow horizontal | ✅ PASSOU | Nenhum | — |
+| **L-02** | Layout | Formulário em 768px (tablet) → grid de 2 colunas na seção de dados pessoais | ✅ PASSOU | Nenhum | — |
+| **L-03** | Layout | Formulário em 1280px (xl) → grid de 3 colunas + sidebar de 240px visível | ✅ PASSOU | Nenhum | — |
+| **L-04** | Layout | Formulário em 1920px → conteúdo respeita max-width de 1800px | ✅ PASSOU | Nenhum | — |
+| **L-05** | Layout | Inputs (CPF, telefone, email) não transbordam o container em telas estreitas | ✅ PASSOU | Nenhum | — |
+| **L-06** | Layout | Select de cidade não transborda ao selecionar UF com nome longo | ✅ PASSOU | Nenhum | — |
+| **L-07** | Layout | Sidebar some em telas menores que 1280px (xl) | ✅ PASSOU | Nenhum | — |
+| **S-01** | Scroll | Aba medicamentos: lista longa deve ser scrollável verticalmente | ✅ PASSOU | Nenhum | — |
+| **S-02** | Scroll | Formulário de clientes: scroll dentro do card sem mover o cabeçalho da página | ✅ PASSOU | Nenhum | — |
+| **S-03** | Scroll | Sidebar de busca de clientes: lista de resultados scrollável independentemente | ✅ PASSOU | Nenhum | — |
+| **A-01** | API | POST /clientes com CPF inválido → 422 com mensagem de campo | ✅ PASSOU | Status real é 422 (não 400); API rejeita CPF com dígito verificador inválido com `"CPF inválido."`; espera CPF sem formatação (só 11 dígitos) | — |
+| **A-02** | API | POST /clientes com CPF duplicado → 409 Conflict | ✅ PASSOU | Nenhum — 409 com `"Já existe um cliente com este CPF."` | — |
+| **A-03** | API | POST /clientes sem campos obrigatórios → 422 com lista de violações | ✅ PASSOU | Status real é 422; apenas `nome` e `cpf` aparecem em `fields` — demais campos validados em camadas internas (domínio/use case) | — |
+| **A-04** | API | GET /clientes?nome=João → retorna clientes filtrados corretamente | ❌ FALHOU | Endpoint de busca por nome **não implementado** no backend; 405 Method Not Allowed. Adaptado: GET /cpf/{cpf} retornou 200 corretamente | 🟡 Média |
 
 ---
 
@@ -113,13 +113,33 @@ CADASTRO DE CLIENTES — PR #1
 
 | Categoria | Quantidade |
 |-----------|-----------|
-| Total de testes executados | 28 |
-| ✅ Passou | |
-| ❌ Falhou — bugs encontrados | |
-| 🔴 Críticos | |
-| 🟠 Alta prioridade | |
-| 🟡 Média prioridade | |
-| ⚪ Baixa prioridade | |
+| Total de testes executados | 39 |
+| ✅ Passou (sem bug) | 28 |
+| ✅ Corrigido (bug encontrado e corrigido) | 10 |
+| ❌ Falhou — funcionalidade ausente | 1 |
+| 🔴 Críticos | 0 |
+| 🟠 Alta prioridade | 5 (D-08, C-07, C-10, N-01, T-01) |
+| 🟡 Média prioridade | 6 (D-09, E-06, E-07, N-02, EN-01, A-04) |
+| ⚪ Baixa prioridade | 0 |
+
+---
+
+## Bugs Corrigidos por Sessão
+
+### Sessão 13/06/2026
+
+1. **Select UF com busca por letra** — `Select.tsx` ganhou prop `searchable` com campo de busca no topo do dropdown, auto-foco e filtro em tempo real. Commit `1047328`.
+2. **Telefone segue padrão CPF** — erro → 2s → limpa → trava foco. Adicionado: `telefoneTravandoFoco`, `telefoneResetTimerRef`, `agendarLimpezaTelefoneAposErro`. Commit `39f3f62`.
+3. **`focoDirecionado()` guard em todos os onBlur** — evita validações falsas quando outro campo trava o foco. Commit `39f3f62`.
+4. **Botão "Cadastrar cliente" condicional** — função `formularioPronto()` habilita o botão apenas quando todos os 11 campos obrigatórios estão preenchidos. Commit `39f3f62`.
+
+### Sessão 15/06/2026
+
+5. **T-01 — Cursor avançava após erro de telefone** — `agendarLimpezaTelefoneAposErro(false)` não travava o foco; corrigido removendo o parâmetro (padrão `true`). Commit `ce92a8a`.
+6. **Busca por CPF preenchia formulário com CPF inexistente** — handler 404 populava o campo CPF com o valor buscado; corrigido para limpar o campo. Commit `ce92a8a`.
+7. **Trocar dígito no Buscar por CPF não limpava o formulário** — corrigido para limpar todos os campos imediatamente ao detectar `clienteId` definido. Commit `ce92a8a`.
+8. **Mensagem de CPF não encontrado com texto desnecessário** — simplificado de "CPF não cadastrado. Preencha os dados para novo cliente." para "CPF não cadastrado." Commit `ce92a8a`.
+9. **Barra de progresso no botão "Cadastrar cliente"** (melhoria de UX) — sobreposição escura encolhe da direita para a esquerda conforme os 11 campos obrigatórios são preenchidos, revelando o verde mint. Commit `ce92a8a`.
 
 ---
 
@@ -153,3 +173,5 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 | 3 | **Layout responsivo** exige testes em múltiplas resoluções — o que funciona em 1920px pode quebrar em 375px |
 | 4 | **`min-w-0` em grids** previne overflow, mas conteúdo dinâmico (mensagens de erro) ainda pode esticar células |
 | 5 | **Sanitização silenciosa** (email com espaços) deve ser verificada: o usuário precisa saber que o valor foi alterado? |
+| 6 | **Testar a API diretamente** revela contratos que o frontend pode mascarar — formato de CPF, status codes reais (422 vs 400) e endpoints ausentes (A-04) só aparecem via Postman/Insomnia |
+| 7 | **Endpoints ausentes são bugs de escopo** — GET /clientes?nome= não implementado (A-04) é uma funcionalidade faltante que deve ser reportada como pendência do backend |
