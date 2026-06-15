@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -51,6 +52,15 @@ public class ClienteController {
             input.getObservacoes()
         ));
         return clienteAssembler.toModel(cliente);
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('BALCONISTA', 'FARMACEUTICO', 'GERENTE', 'ADMIN')")
+    @Operation(summary = "Listar clientes por nome", description = "Busca parcial e sem acentos no nome do cliente.")
+    public List<ClienteModel> listarPorNome(@RequestParam String nome) {
+        return consultarClienteUseCase.listarPorNome(nome).stream()
+            .map(clienteAssembler::toModel)
+            .toList();
     }
 
     @GetMapping("/cpf/{cpf}")

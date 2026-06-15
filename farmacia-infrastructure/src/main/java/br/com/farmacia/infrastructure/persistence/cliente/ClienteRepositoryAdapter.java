@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,5 +54,13 @@ public class ClienteRepositoryAdapter implements ClienteRepository {
     @Transactional(readOnly = true)
     public Optional<Cliente> findByEmailIgnoreCase(String email) {
         return jpaRepository.findByEmailNormalizado(email).map(ClientePersistenceMapper::toDomain);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Cliente> findByNome(String nome) {
+        return jpaRepository.findByNomeContendo(nome).stream()
+            .map(ClientePersistenceMapper::toDomain)
+            .toList();
     }
 }

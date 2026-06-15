@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,4 +36,13 @@ public interface ClienteJpaRepository extends JpaRepository<ClienteJpaEntity, UU
             """,
         nativeQuery = true)
     Optional<ClienteJpaEntity> findByEmailNormalizado(@Param("email") String email);
+
+    @Query(
+        value = """
+            SELECT * FROM clientes
+            WHERE unaccent(LOWER(nome)) LIKE unaccent(LOWER(CONCAT('%', :nome, '%')))
+            ORDER BY nome
+            """,
+        nativeQuery = true)
+    List<ClienteJpaEntity> findByNomeContendo(@Param("nome") String nome);
 }
