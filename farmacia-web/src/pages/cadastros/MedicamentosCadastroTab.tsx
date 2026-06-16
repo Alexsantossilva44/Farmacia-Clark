@@ -88,12 +88,31 @@ export function MedicamentosCadastroTab() {
 
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<MedicamentoInput>(emptyForm)
+  const [pmcCents, setPmcCents] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
   const nomeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pmcTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fabricanteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function formatPmcDisplay(cents: number): string {
+    if (cents === 0) return ''
+    const reais = Math.floor(cents / 100)
+    const centavos = cents % 100
+    return `R$ ${reais.toLocaleString('pt-BR')},${String(centavos).padStart(2, '0')}`
+  }
+
+  function handlePmcChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const digits = e.target.value.replace(/\D/g, '')
+    const cents = Math.min(parseInt(digits || '0', 10), 99999999)
+    setPmcCents(cents)
+    const value = roundMoney(cents / 100)
+    setForm((prev) => ({ ...prev, precoMaximoConsumidor: value }))
+    if (fieldErrors.precoMaximoConsumidor && value > 0) {
+      setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: undefined }))
+    }
+  }
 
   useEffect(() => () => {
     if (nomeTimerRef.current) clearTimeout(nomeTimerRef.current)
@@ -144,6 +163,7 @@ export function MedicamentosCadastroTab() {
       setFieldErrors({})
       setEditId(null)
       setForm(emptyForm())
+      setPmcCents(0)
       qc.invalidateQueries({ queryKey: ['medicamentos'] })
       qc.invalidateQueries({ queryKey: ['medicamentos-cadastro'] })
     },
@@ -159,6 +179,7 @@ export function MedicamentosCadastroTab() {
       setSuccess('Medicamento inativado.')
       setEditId(null)
       setForm(emptyForm())
+      setPmcCents(0)
       qc.invalidateQueries({ queryKey: ['medicamentos'] })
       qc.invalidateQueries({ queryKey: ['medicamentos-cadastro'] })
     },
@@ -168,6 +189,7 @@ export function MedicamentosCadastroTab() {
   function startNew() {
     setEditId(null)
     setForm(emptyForm())
+    setPmcCents(0)
     setError('')
     setSuccess('')
     setFieldErrors({})
@@ -176,6 +198,7 @@ export function MedicamentosCadastroTab() {
   function startEdit(m: Medicamento) {
     setEditId(m.id)
     setForm(medToForm(m))
+    setPmcCents(Math.round(m.precoMaximoConsumidor * 100))
     setError('')
     setSuccess('')
     setFieldErrors({})
@@ -357,20 +380,11 @@ export function MedicamentosCadastroTab() {
             />
             <Input
               label="PMC (R$) *"
-              type="number"
-              min={0.01}
-              step={0.01}
-              value={form.precoMaximoConsumidor || ''}
-              onChange={(e) => {
-                setForm({ ...form, precoMaximoConsumidor: parseFloat(e.target.value) || 0 })
-                if (fieldErrors.precoMaximoConsumidor) {
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    precoMaximoConsumidor:
-                      validarNumeroPositivo(parseFloat(e.target.value) || 0, 'PMC (R$)') ?? undefined,
-                  }))
-                }
-              }}
+              type="text"
+              inputMode="decimal"
+              placeholder="R$ 0,00"
+              value={formatPmcDisplay(pmcCents)}
+              onChange={handlePmcChange}
               onBlur={() => {
                 const err = validarNumeroPositivo(form.precoMaximoConsumidor, 'PMC (R$)') ?? undefined
                 if (err) {
