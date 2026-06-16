@@ -218,15 +218,14 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 | **M-28** | Edição — Cancelar | Clicar "Cancelar" sem salvar → volta para "Novo medicamento" com campos vazios e botão desabilitado | ✅ PASSOU | Nenhum | — |
 | **M-29** | Exclusão | Inativar medicamento → confirmação exibida; após confirmar, medicamento some da lista | ✅ CORRIGIDO | Lista do cadastro exibia medicamentos inativos (sem filtro `ativo`); corrigido com `.filter(m => m.ativo !== false)` em `MedicamentosCadastroTab.tsx` | 🟡 Média |
 | **M-30** | API — EAN duplicado | Tentar cadastrar com EAN já existente → API retorna 409 com mensagem clara | ✅ PASSOU | Nenhum | — |
-| **M-31** | API — PMC null | Enviar PMC null → `@NotNull` deve rejeitar (HTTP 422) | ⏳ PENDENTE | Backend precisa de rebuild/restart para ativar `@NotNull` adicionado nesta sessão; anotação presente no código-fonte | — |
+| **M-31** | API — PMC null | Enviar PMC null → `@NotNull` rejeita com HTTP 422 e mensagem "PMC é obrigatório" | ✅ PASSOU | Nenhum | — |
 
 ### Resumo da Sessão 17/06/2026
 
 | Resultado | Quantidade |
 |-----------|-----------|
-| ✅ Passou (sem bug) | 27 |
+| ✅ Passou (sem bug) | 28 |
 | ✅ Corrigido (bug encontrado e corrigido) | 2 |
-| ⏳ Pendente (aguarda rebuild do backend) | 1 |
 | ❌ Falhou | 0 |
 | **Total** | **30** |
 
