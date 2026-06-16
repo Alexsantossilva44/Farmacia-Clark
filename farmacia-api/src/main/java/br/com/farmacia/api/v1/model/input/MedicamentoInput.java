@@ -56,6 +56,7 @@ public class MedicamentoInput {
     @NotNull(message = "Nível de controle é obrigatório")
     private NivelControle nivelControle;
 
+    @NotNull(message = "PMC é obrigatório")
     @DecimalMin(value = "0.01", message = "PMC deve ser maior que zero")
     @Digits(integer = 8, fraction = 2, message = "PMC inválido")
     private BigDecimal precoMaximoConsumidor;
