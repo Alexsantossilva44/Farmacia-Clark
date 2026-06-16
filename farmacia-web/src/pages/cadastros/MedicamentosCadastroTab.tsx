@@ -305,7 +305,7 @@ export function MedicamentosCadastroTab() {
           {medsQuery.isLoading && (
             <p className="p-6 text-sm text-[#8b9cb3]">Carregando…</p>
           )}
-          {medsQuery.data?.map((m) => (
+          {medsQuery.data?.filter((m) => m.ativo !== false).map((m) => (
             <button
               key={m.id}
               type="button"

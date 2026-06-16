@@ -208,23 +208,44 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 | **M-18** | Categoria | onBlur permanente — warning não some em 2s | ✅ PASSOU | Campo sempre tem valor padrão (CATEGORIA_DEV_ID); usuário real nunca aciona o warning | — |
 | **M-19** | Navegação | Enter avança foco para o próximo campo | ✅ PASSOU | Nenhum | — |
 | **M-20** | Fluxo completo | Cadastro com todos os campos preenchidos → "Medicamento cadastrado." | ✅ PASSOU | Nenhum | — |
+| **M-21** | PMC (R$) — Máscara | Digitar dígitos → campo exibe formato "R$ X,XX" | ✅ PASSOU | Nenhum | — |
+| **M-22** | PMC (R$) — Máscara | Sinal negativo bloqueado: "-500" → "R$ 5,00" | ✅ PASSOU | Nenhum | — |
+| **M-23** | PMC (R$) — Máscara | Letras bloqueadas: "abc" → campo vazio | ✅ PASSOU | Nenhum | — |
+| **M-24** | PMC (R$) — Máscara | Separador de milhar correto: "123456" → "R$ 1.234,56" | ✅ PASSOU | Nenhum | — |
+| **M-25** | Edição | Clicar em medicamento da lista → formulário preenchido com dados + PMC com máscara | ✅ PASSOU | Nenhum | — |
+| **M-26** | Edição — PMC | PMC exibe valor correto ao abrir edição de medicamento (ex.: Amoxil → "R$ 35,99") | ✅ PASSOU | Nenhum | — |
+| **M-27** | Edição — Salvar | Alterar PMC e clicar "Salvar alterações" → lista atualiza e exibe novo valor | ✅ PASSOU | Nenhum | — |
+| **M-28** | Edição — Cancelar | Clicar "Cancelar" sem salvar → volta para "Novo medicamento" com campos vazios e botão desabilitado | ✅ PASSOU | Nenhum | — |
+| **M-29** | Exclusão | Inativar medicamento → confirmação exibida; após confirmar, medicamento some da lista | ✅ CORRIGIDO | Lista do cadastro exibia medicamentos inativos (sem filtro `ativo`); corrigido com `.filter(m => m.ativo !== false)` em `MedicamentosCadastroTab.tsx` | 🟡 Média |
+| **M-30** | API — EAN duplicado | Tentar cadastrar com EAN já existente → API retorna 409 com mensagem clara | ✅ PASSOU | Nenhum | — |
+| **M-31** | API — PMC null | Enviar PMC null → `@NotNull` deve rejeitar (HTTP 422) | ⏳ PENDENTE | Backend precisa de rebuild/restart para ativar `@NotNull` adicionado nesta sessão; anotação presente no código-fonte | — |
 
 ### Resumo da Sessão 17/06/2026
 
 | Resultado | Quantidade |
 |-----------|-----------|
-| ✅ Passou (sem bug) | 18 |
-| ✅ Corrigido (bug encontrado e corrigido) | 1 |
+| ✅ Passou (sem bug) | 27 |
+| ✅ Corrigido (bug encontrado e corrigido) | 2 |
+| ⏳ Pendente (aguarda rebuild do backend) | 1 |
 | ❌ Falhou | 0 |
-| **Total** | **19** |
+| **Total** | **30** |
 
-### Bug Corrigido — Sessão 17/06/2026
+### Bugs Corrigidos — Sessão 17/06/2026
 
 **M-04 — PMC (R$): warning inconsistente no onBlur**
 - **Arquivo:** `farmacia-web/src/pages/cadastros/MedicamentosCadastroTab.tsx`
 - **Comportamento incorreto:** onBlur exibia `"PMC (R$) é obrigatório."` — retorno bruto de `validarNumeroPositivo()`, com tom de erro definitivo
 - **Comportamento correto:** deve exibir `"Lembre-se: Campo Obrigatório."` — warning padrão do formulário, consistente com Nome comercial e Fabricante
 - **Correção:** substituído `err` por `'Lembre-se: Campo Obrigatório.'` no `setFieldErrors` dentro do `onBlur` do PMC
+- **Prioridade:** 🟡 Média
+
+**M-29 — Lista de cadastro exibia medicamentos inativos**
+- **Arquivo:** `farmacia-web/src/pages/cadastros/MedicamentosCadastroTab.tsx`
+- **Comportamento incorreto:** após inativar medicamento, ele continuava visível na lista de cadastro
+- **Comportamento correto:** lista deve exibir apenas medicamentos com `ativo: true`
+- **Causa:** `medsQuery.data?.map(...)` iterava todos os registros sem filtrar pelo campo `ativo`
+- **Correção:** adicionado `.filter((m) => m.ativo !== false)` antes do `.map()`
+- **Observação:** `VendasPage.tsx` já aplicava esse filtro; cadastro estava inconsistente
 - **Prioridade:** 🟡 Média
 
 ### Distinção WARNING × ERROR neste formulário
