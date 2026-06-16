@@ -24,6 +24,10 @@ public interface MedicamentoJpaRepository extends JpaRepository<MedicamentoJpaEn
 
     boolean existsByCodigoEan(String codigoEan);
 
+    boolean existsByNomeComercialIgnoreCaseAndAtivoTrue(String nomeComercial);
+
+    boolean existsByNomeComercialIgnoreCaseAndAtivoTrueAndIdNot(String nomeComercial, UUID id);
+
     Page<MedicamentoJpaEntity> findAllByOrderByNomeComercialAsc(Pageable pageable);
 
     @Query("""

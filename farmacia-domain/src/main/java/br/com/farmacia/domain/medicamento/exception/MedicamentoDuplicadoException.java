@@ -12,4 +12,13 @@ public class MedicamentoDuplicadoException extends DomainException {
     public MedicamentoDuplicadoException(String codigoEan) {
         super("Medicamento já cadastrado com EAN: " + codigoEan);
     }
+
+    private MedicamentoDuplicadoException(String mensagem, @SuppressWarnings("unused") boolean unused) {
+        super(mensagem);
+    }
+
+    public static MedicamentoDuplicadoException porNome(String nomeComercial) {
+        return new MedicamentoDuplicadoException(
+            "Já existe um medicamento cadastrado com o nome: " + nomeComercial, true);
+    }
 }

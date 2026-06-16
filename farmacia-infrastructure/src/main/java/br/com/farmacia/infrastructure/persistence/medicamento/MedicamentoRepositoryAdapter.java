@@ -128,6 +128,18 @@ public class MedicamentoRepositoryAdapter implements MedicamentoRepository {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean existsByNomeComercial(String nomeComercial) {
+        return jpaRepository.existsByNomeComercialIgnoreCaseAndAtivoTrue(nomeComercial);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByNomeComercialExcluindo(String nomeComercial, UUID idExcluir) {
+        return jpaRepository.existsByNomeComercialIgnoreCaseAndAtivoTrueAndIdNot(nomeComercial, idExcluir);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Medicamento getReferenceById(UUID id) {
         return hidratar(jpaRepository.getReferenceById(id));
     }

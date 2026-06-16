@@ -29,5 +29,7 @@ public interface MedicamentoRepository {
 
     void deleteById(UUID id);
     boolean existsByCodigoEan(String ean);
+    boolean existsByNomeComercial(String nomeComercial);
+    boolean existsByNomeComercialExcluindo(String nomeComercial, UUID idExcluir);
     Medicamento getReferenceById(UUID id);
 }

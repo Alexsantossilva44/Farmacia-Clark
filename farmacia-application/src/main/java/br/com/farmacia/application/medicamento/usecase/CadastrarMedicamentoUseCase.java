@@ -26,6 +26,9 @@ public class CadastrarMedicamentoUseCase {
                 && medicamentoRepository.existsByCodigoEan(medicamento.getCodigoEan())) {
             throw new MedicamentoDuplicadoException(medicamento.getCodigoEan());
         }
+        if (medicamentoRepository.existsByNomeComercial(medicamento.getNomeComercial())) {
+            throw MedicamentoDuplicadoException.porNome(medicamento.getNomeComercial());
+        }
         log.info("Cadastrando medicamento: {}", medicamento.getNomeComercial());
         return medicamentoRepository.save(medicamento);
     }
