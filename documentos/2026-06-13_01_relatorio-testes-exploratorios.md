@@ -175,3 +175,62 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 | 5 | **Sanitização silenciosa** (email com espaços) deve ser verificada: o usuário precisa saber que o valor foi alterado? |
 | 6 | **Testar a API diretamente** revela contratos que o frontend pode mascarar — formato de CPF, status codes reais (422 vs 400) e endpoints ausentes (A-04) só aparecem via Postman/Insomnia |
 | 7 | **Endpoints ausentes são bugs de escopo** — GET /clientes?nome= não implementado (A-04) é uma funcionalidade faltante que deve ser reportada como pendência do backend |
+
+---
+
+## Módulo: Cadastro de Medicamentos — Testes Exploratórios
+
+**Data:** 17 de Junho de 2026
+**Sessão:** 3
+**Foco:** Formulário de cadastro de medicamentos — validação de campos, warnings, barra de progresso e fluxo completo
+
+### Tabela de Testes
+
+| ID | Área | Descrição do Teste | Status | Erro Encontrado | Prioridade |
+|----|------|--------------------|--------|-----------------|------------|
+| **M-01** | Fluxo completo | Cadastro completo com campos obrigatórios e opcionais (sessão 16/06) | ✅ PASSOU | Nenhum | — |
+| **M-02** | Nome comercial | onBlur com campo vazio → warning "Lembre-se: Campo Obrigatório." aparece | ✅ PASSOU | Nenhum | — |
+| **M-03** | Nome comercial | Warning some após 2 segundos | ✅ PASSOU | Nenhum | — |
+| **M-04** | PMC (R$) | onBlur sem valor → warning deve ser a mensagem padronizada | ✅ CORRIGIDO | onBlur exibia "PMC (R$) é obrigatório." (retorno bruto de `validarNumeroPositivo`) em vez de "Lembre-se: Campo Obrigatório." (warning padrão); corrigido em `MedicamentosCadastroTab.tsx` | 🟡 Média |
+| **M-05** | PMC (R$) | Warning some após 2 segundos | ✅ PASSOU | Nenhum | — |
+| **M-06** | PMC (R$) | Valor negativo no onBlur → warning dispara | ✅ PASSOU | Nenhum | — |
+| **M-07** | Fabricante | onBlur sem selecionar → warning "Lembre-se: Campo Obrigatório." | ✅ PASSOU | Nenhum | — |
+| **M-08** | Fabricante | Warning some após 2 segundos | ✅ PASSOU | Nenhum | — |
+| **M-09** | Botão | Botão "Cadastrar medicamento" desabilitado com formulário vazio | ✅ PASSOU | Nenhum | — |
+| **M-10** | Botão / Progresso | Barra de progresso em 33% com só Nome comercial preenchido | ✅ PASSOU | Nenhum | — |
+| **M-11** | Botão / Progresso | Barra de progresso em 67% com Nome + PMC preenchidos | ✅ PASSOU | Nenhum | — |
+| **M-12** | Botão / Progresso | Barra em 100% e botão habilita com Nome + PMC + Fabricante | ✅ PASSOU | Nenhum | — |
+| **M-13** | EAN-13 | Campo não aceita letras — somente dígitos | ✅ PASSOU | Nenhum | — |
+| **M-14** | EAN-13 | Campo limita a 13 dígitos | ✅ PASSOU | Nenhum | — |
+| **M-15** | Concentração | Campo limita a 50 caracteres (maxLength) | ✅ PASSOU | Nenhum | — |
+| **M-16** | Apresentação | Campo limita a 100 caracteres (maxLength no browser) | ✅ PASSOU | Nenhum — maxLength=100 correto; browser bloqueia digitação manual; ferramentas de automação podem bypass (não é cenário de usuário real) | — |
+| **M-17** | Nível de controle | Mudar para não-LIVRE ativa "Exige receita" automaticamente; voltar para LIVRE desmarca | ✅ PASSOU | Nenhum | — |
+| **M-18** | Categoria | onBlur permanente — warning não some em 2s | ✅ PASSOU | Campo sempre tem valor padrão (CATEGORIA_DEV_ID); usuário real nunca aciona o warning | — |
+| **M-19** | Navegação | Enter avança foco para o próximo campo | ✅ PASSOU | Nenhum | — |
+| **M-20** | Fluxo completo | Cadastro com todos os campos preenchidos → "Medicamento cadastrado." | ✅ PASSOU | Nenhum | — |
+
+### Resumo da Sessão 17/06/2026
+
+| Resultado | Quantidade |
+|-----------|-----------|
+| ✅ Passou (sem bug) | 18 |
+| ✅ Corrigido (bug encontrado e corrigido) | 1 |
+| ❌ Falhou | 0 |
+| **Total** | **19** |
+
+### Bug Corrigido — Sessão 17/06/2026
+
+**M-04 — PMC (R$): warning inconsistente no onBlur**
+- **Arquivo:** `farmacia-web/src/pages/cadastros/MedicamentosCadastroTab.tsx`
+- **Comportamento incorreto:** onBlur exibia `"PMC (R$) é obrigatório."` — retorno bruto de `validarNumeroPositivo()`, com tom de erro definitivo
+- **Comportamento correto:** deve exibir `"Lembre-se: Campo Obrigatório."` — warning padrão do formulário, consistente com Nome comercial e Fabricante
+- **Correção:** substituído `err` por `'Lembre-se: Campo Obrigatório.'` no `setFieldErrors` dentro do `onBlur` do PMC
+- **Prioridade:** 🟡 Média
+
+### Distinção WARNING × ERROR neste formulário
+
+| Momento | Tipo | Mensagem | Duração |
+|---------|------|----------|---------|
+| Sair do campo obrigatório vazio (onBlur) | ⚠️ WARNING | "Lembre-se: Campo Obrigatório." | 2 segundos, some |
+| Clicar em Cadastrar com campo vazio | ⚠️ WARNING | "Lembre-se: Campo Obrigatório." | 2 segundos, some |
+| Erro retornado pela API | ❌ ERROR | Ex.: "Já existe um medicamento com este nome." | Permanente até nova ação |

@@ -375,7 +375,7 @@ export function MedicamentosCadastroTab() {
                 const err = validarNumeroPositivo(form.precoMaximoConsumidor, 'PMC (R$)') ?? undefined
                 if (err) {
                   if (pmcTimerRef.current) clearTimeout(pmcTimerRef.current)
-                  setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: err }))
+                  setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: 'Lembre-se: Campo Obrigatório.' }))
                   pmcTimerRef.current = setTimeout(() => {
                     setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: undefined }))
                   }, REQUIRED_MSG_DELAY_MS)
