@@ -7,6 +7,7 @@ import { saveToken, isAuthenticated } from '@/lib/auth'
 import { limparCacheUsuario } from '@/lib/queryClient'
 import { FARMACIA_NOME_COMPLETO } from '@/lib/branding'
 import { traduzirErroApi, mensagemValidacaoCampo } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
@@ -30,7 +31,7 @@ export function LoginPage() {
 
   const [email, setEmail] = useState(import.meta.env.DEV ? 'admin@farmacia.com' : '')
   const [senha, setSenha] = useState(import.meta.env.DEV ? 'admin123' : '')
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
 
   useEffect(() => {
     if (isAuthenticated()) {
@@ -45,25 +46,25 @@ export function LoginPage() {
       saveToken(data.token, data.expiraEmSegundos)
       navigate(from, { replace: true })
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   function fillDemo(account: (typeof DEMO_ACCOUNTS)[0]) {
     setEmail(account.email)
     setSenha(account.senha)
-    setError('')
+    clearError()
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    clearError()
 
     if (!email.trim()) {
-      setError(mensagemValidacaoCampo('e-mail'))
+      showError(mensagemValidacaoCampo('e-mail'))
       return
     }
     if (!senha) {
-      setError(mensagemValidacaoCampo('senha'))
+      showError(mensagemValidacaoCampo('senha'))
       return
     }
 

@@ -14,6 +14,8 @@ import {
 } from '@/lib/format'
 import { medicamentosToSelectOptions } from '@/lib/cadastro-options'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
+import { useErrosCampo } from '@/hooks/useErrosCampo'
 import {
   focarPrimeiroErro,
   validarMotivoMinimo,
@@ -48,15 +50,10 @@ export function EstoqueAjustePanel({ medicamentoIdInicial, onSucesso }: Props) {
   const [tipo, setTipo] = useState<TipoAjusteSaldo>('AJUSTE_NEGATIVO')
   const [quantidadeInput, setQuantidadeInput] = useState('1')
   const [motivo, setMotivo] = useState('')
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
   const [success, setSuccess] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
-  const [fieldErrors, setFieldErrors] = useState<{
-    medicamentoId?: string
-    loteId?: string
-    quantidadeInput?: string
-    motivo?: string
-  }>({})
 
   function limparFormulario(medicamentoPreset?: string | null) {
     setMedicamentoId(medicamentoPreset ?? '')
@@ -64,9 +61,9 @@ export function EstoqueAjustePanel({ medicamentoIdInicial, onSucesso }: Props) {
     setTipo('AJUSTE_NEGATIVO')
     setQuantidadeInput('1')
     setMotivo('')
-    setError('')
+    clearError()
     setSuccess('')
-    setFieldErrors({})
+    limparErros()
   }
 
   useEffect(() => {
@@ -135,11 +132,11 @@ export function EstoqueAjustePanel({ medicamentoIdInicial, onSucesso }: Props) {
 
       limparFormulario()
       setSuccess(mensagem)
-      setError('')
+      clearError()
     },
     onError: (err: unknown) => {
       setSuccess('')
-      setError(traduzirErroApi(err))
+      showError(traduzirErroApi(err))
     },
   })
 
@@ -157,12 +154,10 @@ export function EstoqueAjustePanel({ medicamentoIdInicial, onSucesso }: Props) {
     const qtdErr = validarQuantidade(parseQuantidadeInput(quantidadeInput), 'Quantidade')
     const motivoErr = validarMotivoMinimo(motivo, MOTIVO_MIN, 'Motivo')
 
-    setFieldErrors({
-      medicamentoId: medErr ?? undefined,
-      loteId: loteErr ?? undefined,
-      quantidadeInput: qtdErr ?? undefined,
-      motivo: motivoErr ?? undefined,
-    })
+    setErroTemporario('medicamentoId', medErr ?? undefined)
+    setErroTemporario('loteId', loteErr ?? undefined)
+    setErroTemporario('quantidadeInput', qtdErr ?? undefined)
+    setErroTemporario('motivo', motivoErr ?? undefined)
 
     const valido = !medErr && !loteErr && !qtdErr && !motivoErr
     if (!valido) focarPrimeiroErro(formRef.current)

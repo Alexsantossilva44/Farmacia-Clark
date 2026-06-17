@@ -5,6 +5,8 @@ import type { Medicamento } from '@/types/api'
 import { medicamentosToSelectOptions } from '@/lib/cadastro-options'
 import { fetchAllMedicamentos, registrarEntradaEstoque } from '@/lib/api'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
+import { useErrosCampo } from '@/hooks/useErrosCampo'
 import {
   focarPrimeiroErro,
   validarDataObrigatoria,
@@ -71,16 +73,10 @@ export function EstoqueEntradaPanel({ medicamentoIdInicial, onSucesso }: Props) 
   const [qtdMin, setQtdMin] = useState(FORM_INICIAL.qtdMin)
   const [qtdMax, setQtdMax] = useState(FORM_INICIAL.qtdMax)
   const [observacao, setObservacao] = useState(FORM_INICIAL.observacao)
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
   const [success, setSuccess] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
-  const [fieldErrors, setFieldErrors] = useState<{
-    medicamentoId?: string
-    numeroLote?: string
-    quantidadeInput?: string
-    dataValidade?: string
-    dataFabricacao?: string
-  }>({})
 
   function limparFormulario(medicamentoPreset?: string | null) {
     const preset = medicamentoPreset ?? ''
@@ -93,9 +89,9 @@ export function EstoqueEntradaPanel({ medicamentoIdInicial, onSucesso }: Props) 
     setQtdMin(FORM_INICIAL.qtdMin)
     setQtdMax(FORM_INICIAL.qtdMax)
     setObservacao(FORM_INICIAL.observacao)
-    setError('')
+    clearError()
     setSuccess('')
-    setFieldErrors({})
+    limparErros()
   }
 
   const medsQuery = useQuery({
@@ -209,11 +205,11 @@ export function EstoqueEntradaPanel({ medicamentoIdInicial, onSucesso }: Props) 
 
       limparFormulario()
       setSuccess(mensagem)
-      setError('')
+      clearError()
     },
     onError: (err: unknown) => {
       setSuccess('')
-      setError(traduzirErroApi(err))
+      showError(traduzirErroApi(err))
     },
   })
 
@@ -232,13 +228,11 @@ export function EstoqueEntradaPanel({ medicamentoIdInicial, onSucesso }: Props) 
       fabricacaoErr = 'Data de fabricação inválida em relação à validade.'
     }
 
-    setFieldErrors({
-      medicamentoId: medErr ?? undefined,
-      numeroLote: loteErr ?? undefined,
-      quantidadeInput: qtdErr ?? undefined,
-      dataValidade: validadeErr ?? undefined,
-      dataFabricacao: fabricacaoErr ?? undefined,
-    })
+    setErroTemporario('medicamentoId', medErr ?? undefined)
+    setErroTemporario('numeroLote', loteErr ?? undefined)
+    setErroTemporario('quantidadeInput', qtdErr ?? undefined)
+    setErroTemporario('dataValidade', validadeErr ?? undefined)
+    setErroTemporario('dataFabricacao', fabricacaoErr ?? undefined)
 
     const valido = !medErr && !loteErr && !qtdErr && !validadeErr && !fabricacaoErr
     if (!valido) focarPrimeiroErro(formRef.current)

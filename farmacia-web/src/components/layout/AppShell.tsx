@@ -111,7 +111,7 @@ export function AppShell() {
         aria-label="Menu principal"
         aria-hidden={!isLg && !mobileOpen}
         className={`fixed inset-y-0 left-0 z-50 flex w-[min(280px,88vw)] max-w-[260px] flex-col
-          border-r border-white/10 bg-bg-elevated/95 backdrop-blur-xl
+          glass-sidebar
           transition-transform duration-300 ease-out
           lg:translate-x-0 lg:z-40
           ${mobileOpen

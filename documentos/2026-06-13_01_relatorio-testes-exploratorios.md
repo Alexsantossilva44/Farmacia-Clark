@@ -219,15 +219,19 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 | **M-29** | Exclusão | Inativar medicamento → confirmação exibida; após confirmar, medicamento some da lista | ✅ CORRIGIDO | Lista do cadastro exibia medicamentos inativos (sem filtro `ativo`); corrigido com `.filter(m => m.ativo !== false)` em `MedicamentosCadastroTab.tsx` | 🟡 Média |
 | **M-30** | API — EAN duplicado | Tentar cadastrar com EAN já existente → API retorna 409 com mensagem clara | ✅ PASSOU | Nenhum | — |
 | **M-31** | API — PMC null | Enviar PMC null → `@NotNull` rejeita com HTTP 422 e mensagem "PMC é obrigatório" | ✅ PASSOU | Nenhum | — |
+| **M-32** | Nome duplicado | Tentar cadastrar "Amoxil" (já existente) → bloqueado com "Já existe um medicamento cadastrado com o nome: Amoxil" | ✅ CORRIGIDO | Sem a validação, nomes duplicados eram aceitos silenciosamente; corrigido com verificação na camada de use case + índice UNIQUE parcial no banco | 🔴 Alta |
+| **M-33** | Nome duplicado — case-insensitive | Tentar cadastrar "AMOXIL" (maiúsculas) com "Amoxil" existente → bloqueado com "Já existe um medicamento cadastrado com o nome: AMOXIL" | ✅ PASSOU | Nenhum | — |
+| **M-34** | PMC zerado | Digitar PMC = R$ 0,00 → botão "Cadastrar medicamento" fica desabilitado; envio bloqueado no frontend antes de chegar à API | ✅ PASSOU | Nenhum | — |
+| **M-35** | EAN-13 inválido | Digitar EAN com 12 dígitos → API rejeita; mensagem exibe "EAN deve conter exatamente 13 dígitos numéricos" | ✅ CORRIGIDO | Duas anotações Bean Validation (`@Size` + `@Pattern`) disparavam juntas, colando duas mensagens sem separador; `@Size` removida (redundante com `\d{13}`) e mensagem do `@Pattern` unificada; join frontend alterado de `' '` para `'; '` | 🟡 Média |
 
 ### Resumo da Sessão 17/06/2026
 
 | Resultado | Quantidade |
 |-----------|-----------|
-| ✅ Passou (sem bug) | 28 |
-| ✅ Corrigido (bug encontrado e corrigido) | 2 |
+| ✅ Passou (sem bug) | 30 |
+| ✅ Corrigido (bug encontrado e corrigido) | 4 |
 | ❌ Falhou | 0 |
-| **Total** | **30** |
+| **Total** | **34** |
 
 ### Bugs Corrigidos — Sessão 17/06/2026
 
@@ -245,6 +249,27 @@ A remoção do bloqueio de Tab é uma melhoria de UX, mas precisa ser validada:
 - **Causa:** `medsQuery.data?.map(...)` iterava todos os registros sem filtrar pelo campo `ativo`
 - **Correção:** adicionado `.filter((m) => m.ativo !== false)` antes do `.map()`
 - **Observação:** `VendasPage.tsx` já aplicava esse filtro; cadastro estava inconsistente
+- **Prioridade:** 🟡 Média
+
+**M-32 — Nome comercial duplicado era aceito sem bloqueio**
+- **Arquivos afetados:** `CadastrarMedicamentoUseCase.java`, `AtualizarMedicamentoUseCase.java`, `MedicamentoDuplicadoException.java`, `MedicamentoRepository.java`, `MedicamentoJpaRepository.java`, `MedicamentoRepositoryAdapter.java` + migration `V9__unique_nome_comercial.sql`
+- **Comportamento incorreto:** cadastrar um medicamento com nome já existente (ex.: "Amoxil") era aceito pela API sem retornar erro
+- **Comportamento correto:** API deve retornar HTTP 409 com mensagem "Já existe um medicamento cadastrado com o nome: Amoxil"; frontend exibe o texto em vermelho no topo do formulário
+- **Causa:** nenhuma verificação de unicidade de nome na camada de domínio; ausência de constraint UNIQUE no banco para `nome_comercial`
+- **Correção:**
+  - `CadastrarMedicamentoUseCase`: chamada a `existsByNomeComercial()` antes de salvar → lança `MedicamentoDuplicadoException.porNome()`
+  - `AtualizarMedicamentoUseCase`: chamada a `existsByNomeComercialExcluindo()` (exclui o próprio ID) → lança exceção se outro registro tiver o mesmo nome
+  - `MedicamentoDuplicadoException`: novo factory `porNome(String)` com mensagem específica
+  - `MedicamentoJpaRepository`: dois métodos Spring Data — `existsByNomeComercialIgnoreCaseAndAtivoTrue` e `existsByNomeComercialIgnoreCaseAndAtivoTrueAndIdNot`
+  - `V9__unique_nome_comercial.sql`: índice UNIQUE parcial `lower(nome_comercial) WHERE ativo = true` (segurança no nível do banco; inativos ficam fora do índice)
+- **Prioridade:** 🔴 Alta
+
+**M-35 — EAN inválido: duas mensagens coladas sem separador**
+- **Arquivos:** `farmacia-api/.../MedicamentoInput.java` + `farmacia-web/src/lib/erros.ts`
+- **Comportamento incorreto:** EAN com 12 dígitos disparava `@Size` e `@Pattern` simultaneamente; frontend juntava as mensagens com espaço simples → "Código EAN deve ter exatamente 13 dígitos Código EAN deve conter apenas números"
+- **Comportamento correto:** uma única mensagem clara → "EAN deve conter exatamente 13 dígitos numéricos"
+- **Correção backend:** removida anotação `@Size(min=13,max=13)` (redundante com `\d{13}`); mensagem do `@Pattern` atualizada para "EAN deve conter exatamente 13 dígitos numéricos"
+- **Correção frontend:** `campos.map(...).join(' ')` → `join('; ')` em `erros.ts` (defesa para múltiplas mensagens futuras)
 - **Prioridade:** 🟡 Média
 
 ### Distinção WARNING × ERROR neste formulário

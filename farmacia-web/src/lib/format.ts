@@ -51,7 +51,8 @@ export function sugerirPrecoCustoFromPmc(pmc: number): number {
   return roundMoney(pmc * 0.6)
 }
 
-export function formatEan(ean: string): string {
+export function formatEan(ean: string | null | undefined): string {
+  if (!ean) return '—'
   if (ean.length !== 13) return ean
   return `${ean.slice(0, 1)} ${ean.slice(1, 7)} ${ean.slice(7, 12)} ${ean.slice(12)}`
 }

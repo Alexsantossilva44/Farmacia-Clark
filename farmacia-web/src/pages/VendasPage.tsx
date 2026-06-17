@@ -40,6 +40,7 @@ import {
   cartSubtotal,
 } from '@/types/venda'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
 
 const FORMAS_PAGAMENTO: FormaPagamento[] = [
   'DINHEIRO',
@@ -61,7 +62,7 @@ export function VendasPage() {
     venda: VendaRealizada
     formaPagamento: FormaPagamento
   } | null>(null)
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
 
   const pdvQuery = useQuery({
     queryKey: ['pdv-contexto'],
@@ -97,11 +98,11 @@ export function VendasPage() {
       setCompradorCpf('')
       setCompradorNome('')
       setReceitaId('')
-      setError('')
+      clearError()
       void queryClient.invalidateQueries({ queryKey: ['estoque-disponivel-venda-pdv'] })
       void queryClient.invalidateQueries({ queryKey: ['estoque-itens'] })
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   const filteredMeds = medsQuery.data?.filter((m) => {
@@ -118,7 +119,7 @@ export function VendasPage() {
   function addToCart(med: Medicamento) {
     const saldo = getSaldoPdv(saldos, med.id)
     if (saldo <= 0) {
-      setError(
+      showError(
         `"${med.nomeComercial}" está sem estoque. Registre entrada em Estoque ou Compras antes de vender.`,
       )
       return
@@ -128,17 +129,17 @@ export function VendasPage() {
       const existing = prev.find((i) => i.medicamento.id === med.id)
       if (existing) {
         if (existing.quantidade >= saldo) {
-          setError(`Estoque máximo: ${saldo} un. para "${med.nomeComercial}".`)
+          showError(`Estoque máximo: ${saldo} un. para "${med.nomeComercial}".`)
           return prev
         }
-        setError('')
+        clearError()
         return prev.map((i) =>
           i.medicamento.id === med.id
             ? { ...i, quantidade: Math.min(i.quantidade + 1, saldo) }
             : i,
         )
       }
-      setError('')
+      clearError()
       return [
         ...prev,
         {
@@ -159,9 +160,9 @@ export function VendasPage() {
           if (i.medicamento.id !== medId) return i
           const next = Math.max(1, Math.min(saldo, i.quantidade + delta))
           if (delta > 0 && next === i.quantidade && i.quantidade >= saldo) {
-            setError(`Estoque máximo: ${saldo} un. para "${i.medicamento.nomeComercial}".`)
+            showError(`Estoque máximo: ${saldo} un. para "${i.medicamento.nomeComercial}".`)
           } else {
-            setError('')
+            clearError()
           }
           return { ...i, quantidade: next }
         })
@@ -179,28 +180,28 @@ export function VendasPage() {
     const pdv = pdvQuery.data
 
     if (!funcionarioId) {
-      setError('Sessão inválida — faça login novamente.')
+      showError('Sessão inválida — faça login novamente.')
       return
     }
     if (!pdv?.caixaAberto) {
-      setError('Caixa fechado no PDV. Abra o caixa antes de vender.')
+      showError('Caixa fechado no PDV. Abra o caixa antes de vender.')
       return
     }
     if (cart.length === 0) {
-      setError('Adicione ao menos um item ao carrinho.')
+      showError('Adicione ao menos um item ao carrinho.')
       return
     }
     if (cartRequiresReceita(cart) && !receitaId.trim()) {
-      setError('Informe o ID da receita para medicamentos que exigem prescrição.')
+      showError('Informe o ID da receita para medicamentos que exigem prescrição.')
       return
     }
     if (cartRequiresCpf(cart) && !compradorCpf.trim()) {
-      setError('CPF do comprador é obrigatório para controlados/antimicrobianos.')
+      showError('CPF do comprador é obrigatório para controlados/antimicrobianos.')
       return
     }
     const estoqueCheck = validarCarrinhoEstoque(cart, saldos)
     if (!estoqueCheck.ok) {
-      setError(estoqueCheck.message ?? 'Estoque insuficiente no carrinho.')
+      showError(estoqueCheck.message ?? 'Estoque insuficiente no carrinho.')
       return
     }
     vendaMutation.mutate({

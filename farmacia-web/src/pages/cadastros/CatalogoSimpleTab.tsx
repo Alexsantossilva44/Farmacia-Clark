@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
+import { useErrosCampo, MSG_OBRIGATORIO, obrigatorio, calcularProgressoCampos } from '@/hooks/useErrosCampo'
 import {
+  ApiError,
   cadastrarCategoria,
   cadastrarFabricante,
   cadastrarPrescritor,
@@ -10,6 +12,7 @@ import {
 } from '@/lib/api'
 import { canGerenciarMedicamentos } from '@/lib/auth'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
 import { UFS_BR, formatCnpjDisplay, maskCnpjInput, onlyDigits } from '@/lib/cadastro-options'
 import {
   focarPrimeiroErro,
@@ -64,9 +67,9 @@ function sortPrescritores(items: Prescritor[]): Prescritor[] {
 export function CatalogoSimpleTab({ kind }: Props) {
   const qc = useQueryClient()
   const formRef = useRef<HTMLDivElement>(null)
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
   const [success, setSuccess] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({})
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
 
   const [razaoSocial, setRazaoSocial] = useState('')
   const [nomeFantasia, setNomeFantasia] = useState('')
@@ -127,8 +130,8 @@ export function CatalogoSimpleTab({ kind }: Props) {
     },
     onSuccess: () => {
       setSuccess('Cadastro realizado com sucesso.')
-      setError('')
-      setFieldErrors({})
+      clearError()
+      limparErros()
       if (kind === 'fabricantes') {
         setRazaoSocial('')
         setNomeFantasia('')
@@ -144,10 +147,32 @@ export function CatalogoSimpleTab({ kind }: Props) {
         setEspecialidade('')
         qc.invalidateQueries({ queryKey: ['prescritores'] })
       }
+      setTimeout(() => {
+        formRef.current?.querySelector<HTMLElement>('input, select, textarea')?.focus()
+      }, 0)
     },
     onError: (err: unknown) => {
       setSuccess('')
-      setError(traduzirErroApi(err))
+      if (kind === 'fabricantes' && err instanceof ApiError && err.status === 409) {
+        if (err.problem?.title === 'Fabricante duplicado') {
+          setErroTemporario('razaoSocial', 'Razão social já cadastrada.')
+          setTimeout(() => {
+            setRazaoSocial('')
+            formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+          }, 2000)
+          return
+        }
+        if (err.problem?.title === 'CNPJ já cadastrado') {
+          setErroTemporario('cnpj', 'CNPJ já cadastrado.')
+          setTimeout(() => {
+            setCnpj('')
+            const inputs = formRef.current?.querySelectorAll<HTMLInputElement>('input')
+            inputs?.[2]?.focus()
+          }, 2000)
+          return
+        }
+      }
+      showError(traduzirErroApi(err))
     },
   })
 
@@ -175,33 +200,72 @@ export function CatalogoSimpleTab({ kind }: Props) {
 
   /** Regras por aba (kind); inclui descricao e especialidade como obrigatórios. */
   function validarFormulario(): boolean {
-    const erros: Record<string, string | undefined> = {}
+    let erros: Record<string, string | undefined> = {}
 
     if (kind === 'fabricantes') {
-      erros.razaoSocial = validarObrigatorio(razaoSocial, 'Razão social') ?? undefined
-      // obrigatorio=true — fabricantes.cnpj é NOT NULL UNIQUE no banco (V1).
-      erros.cnpj = validarCnpj(cnpj, true) ?? undefined
+      erros = {
+        razaoSocial: obrigatorio(razaoSocial),
+        cnpj: validarCnpj(cnpj, true) ?? undefined,
+      }
     } else if (kind === 'categorias') {
-      erros.nomeCategoria = validarObrigatorio(nomeCategoria, 'Nome da categoria') ?? undefined
-      // Descrição deixou de ser opcional — categoriza o uso no catálogo de medicamentos.
-      erros.descricao = validarObrigatorio(descricao, 'Descrição') ?? undefined
+      erros = {
+        nomeCategoria: obrigatorio(nomeCategoria),
+        descricao: obrigatorio(descricao),
+      }
     } else {
-      erros.nomePrescritor = validarObrigatorio(nomePrescritor, 'Nome completo') ?? undefined
-      erros.crm = validarObrigatorio(crm, 'CRM') ?? undefined
-      erros.ufCrm = validarSelecao(ufCrm, 'UF') ?? undefined
-      // Especialidade exigida para identificar o prescritor na receituário/validação.
-      erros.especialidade = validarObrigatorio(especialidade, 'Especialidade') ?? undefined
+      erros = {
+        nomePrescritor: obrigatorio(nomePrescritor),
+        crm: obrigatorio(crm),
+        ufCrm: validarSelecao(ufCrm, 'UF') ? MSG_OBRIGATORIO : undefined,
+        especialidade: obrigatorio(especialidade),
+      }
     }
 
-    setFieldErrors(erros)
+    Object.entries(erros).forEach(([campo, msg]) => setErroTemporario(campo, msg))
     const valido = !Object.values(erros).some(Boolean)
     if (!valido) focarPrimeiroErro(formRef.current)
     return valido
   }
 
+  function checarRazaoSocialDuplicada(): boolean {
+    const lista = qc.getQueryData<Fabricante[]>(['fabricantes']) ?? []
+    return lista.some(
+      f => f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
+    )
+  }
+
   function tentarCadastrar() {
+    if (kind === 'fabricantes' && checarRazaoSocialDuplicada()) {
+      setErroTemporario('razaoSocial', 'Razão social já cadastrada.')
+      setTimeout(() => {
+        setRazaoSocial('')
+        formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+      }, 2000)
+      return
+    }
     if (!validarFormulario()) return
     saveMutation.mutate()
+  }
+
+  function calcularProgresso(): number {
+    if (kind === 'fabricantes') {
+      return calcularProgressoCampos([
+        razaoSocial.trim().length > 0,
+        onlyDigits(cnpj).length === 14,
+      ])
+    }
+    if (kind === 'categorias') {
+      return calcularProgressoCampos([
+        nomeCategoria.trim().length > 0,
+        descricao.trim().length > 0,
+      ])
+    }
+    return calcularProgressoCampos([
+      nomePrescritor.trim().length > 0,
+      crm.trim().length > 0,
+      ufCrm.trim().length > 0,
+      especialidade.trim().length > 0,
+    ])
   }
 
   return (
@@ -270,18 +334,20 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setRazaoSocial(e.target.value)
                   if (fieldErrors.razaoSocial) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      razaoSocial: validarObrigatorio(e.target.value, 'Razão social') ?? undefined,
-                    }))
+                    setErroTemporario('razaoSocial', obrigatorio(e.target.value))
                   }
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    razaoSocial: validarObrigatorio(razaoSocial, 'Razão social') ?? undefined,
-                  }))
-                }
+                onBlur={() => {
+                  const vazio = obrigatorio(razaoSocial)
+                  if (vazio) { setErroTemporario('razaoSocial', vazio); return }
+                  if (checarRazaoSocialDuplicada()) {
+                    setErroTemporario('razaoSocial', 'Razão social já cadastrada.')
+                    setTimeout(() => {
+                      setRazaoSocial('')
+                      formRef.current?.querySelector<HTMLInputElement>('input')?.focus()
+                    }, 2000)
+                  }
+                }}
                 error={fieldErrors.razaoSocial}
               />
               <Input
@@ -295,18 +361,11 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setCnpj(maskCnpjInput(e.target.value))
                   if (fieldErrors.cnpj) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      // true = obrigatório; alinhado a FabricanteInput @NotBlank e NOT NULL no banco.
-                      cnpj: validarCnpj(e.target.value, true) ?? undefined,
-                    }))
+                    setErroTemporario('cnpj', validarCnpj(e.target.value, true) ?? undefined)
                   }
                 }}
                 onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    cnpj: validarCnpj(cnpj, true) ?? undefined,
-                  }))
+                  setErroTemporario('cnpj', validarCnpj(cnpj, true) ?? undefined)
                 }
                 error={fieldErrors.cnpj}
                 className="font-mono"
@@ -324,18 +383,10 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setNomeCategoria(e.target.value)
                   if (fieldErrors.nomeCategoria) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      nomeCategoria: validarObrigatorio(e.target.value, 'Nome da categoria') ?? undefined,
-                    }))
+                    setErroTemporario('nomeCategoria', obrigatorio(e.target.value))
                   }
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    nomeCategoria: validarObrigatorio(nomeCategoria, 'Nome da categoria') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('nomeCategoria', obrigatorio(nomeCategoria))}
                 error={fieldErrors.nomeCategoria}
               />
               <Input
@@ -344,18 +395,10 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setDescricao(e.target.value)
                   if (fieldErrors.descricao) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      descricao: validarObrigatorio(e.target.value, 'Descrição') ?? undefined,
-                    }))
+                    setErroTemporario('descricao', obrigatorio(e.target.value))
                   }
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    descricao: validarObrigatorio(descricao, 'Descrição') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('descricao', obrigatorio(descricao))}
                 error={fieldErrors.descricao}
               />
             </>
@@ -368,18 +411,10 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setNomePrescritor(e.target.value)
                   if (fieldErrors.nomePrescritor) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      nomePrescritor: validarObrigatorio(e.target.value, 'Nome completo') ?? undefined,
-                    }))
+                    setErroTemporario('nomePrescritor', obrigatorio(e.target.value))
                   }
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    nomePrescritor: validarObrigatorio(nomePrescritor, 'Nome completo') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('nomePrescritor', obrigatorio(nomePrescritor))}
                 error={fieldErrors.nomePrescritor}
               />
               <div className="grid grid-cols-2 gap-3">
@@ -389,18 +424,10 @@ export function CatalogoSimpleTab({ kind }: Props) {
                   onChange={(e) => {
                     setCrm(e.target.value)
                     if (fieldErrors.crm) {
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        crm: validarObrigatorio(e.target.value, 'CRM') ?? undefined,
-                      }))
+                      setErroTemporario('crm', obrigatorio(e.target.value))
                     }
                   }}
-                  onBlur={() =>
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      crm: validarObrigatorio(crm, 'CRM') ?? undefined,
-                    }))
-                  }
+                  onBlur={() => setErroTemporario('crm', obrigatorio(crm))}
                   error={fieldErrors.crm}
                 />
                 <Select
@@ -409,17 +436,11 @@ export function CatalogoSimpleTab({ kind }: Props) {
                   onChange={(v) => {
                     setUfCrm(v)
                     if (fieldErrors.ufCrm) {
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        ufCrm: validarSelecao(v, 'UF') ?? undefined,
-                      }))
+                      setErroTemporario('ufCrm', validarSelecao(v, 'UF') ?? undefined)
                     }
                   }}
                   onBlur={() =>
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      ufCrm: validarSelecao(ufCrm, 'UF') ?? undefined,
-                    }))
+                    setErroTemporario('ufCrm', validarSelecao(ufCrm, 'UF') ? MSG_OBRIGATORIO : undefined)
                   }
                   options={UFS_BR.map((uf) => ({ value: uf, label: uf }))}
                   error={fieldErrors.ufCrm}
@@ -431,18 +452,10 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   setEspecialidade(e.target.value)
                   if (fieldErrors.especialidade) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      especialidade: validarObrigatorio(e.target.value, 'Especialidade') ?? undefined,
-                    }))
+                    setErroTemporario('especialidade', obrigatorio(e.target.value))
                   }
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    especialidade: validarObrigatorio(especialidade, 'Especialidade') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('especialidade', obrigatorio(especialidade))}
                 error={fieldErrors.especialidade}
               />
             </>
@@ -450,12 +463,20 @@ export function CatalogoSimpleTab({ kind }: Props) {
         </div>
 
         <Button
-          className="mt-6"
+          className="mt-6 relative overflow-hidden"
           loading={saveMutation.isPending}
           disabled={saveMutation.isPending}
           onClick={tentarCadastrar}
         >
-          Cadastrar
+          <div
+            className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
+            style={{ width: `${100 - calcularProgresso()}%` }}
+          />
+          <span className="relative">
+            {kind === 'fabricantes' && 'Cadastrar fabricante'}
+            {kind === 'categorias' && 'Cadastrar categoria'}
+            {kind === 'prescritores' && 'Cadastrar prescritor'}
+          </span>
         </Button>
         </div>
       </Card>

@@ -10,6 +10,8 @@ import {
 } from '@/lib/api'
 import { canGerenciarMedicamentos, isAdmin } from '@/lib/auth'
 import { traduzirErroApi } from '@/lib/erros'
+import { ApiError } from '@/lib/api'
+import { useErro } from '@/hooks/useErro'
 import {
   FORMAS_FARMACEUTICAS,
   NIVEIS_CONTROLE,
@@ -27,9 +29,8 @@ import { Badge } from '@/components/ui/Badge'
 import { CATEGORIA_DEV_ID } from '@/types/catalogo'
 import type { MedicamentoInput } from '@/types/cadastro'
 import type { Medicamento } from '@/types/api'
-import { useState, useRef, useEffect } from 'react'
-
-const REQUIRED_MSG_DELAY_MS = 2000
+import { useState, useRef } from 'react'
+import { useErrosCampo, MSG_OBRIGATORIO } from '@/hooks/useErrosCampo'
 import {
   focarPrimeiroErro,
   validarNumeroPositivo,
@@ -89,12 +90,12 @@ export function MedicamentosCadastroTab() {
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<MedicamentoInput>(emptyForm)
   const [pmcCents, setPmcCents] = useState(0)
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
   const [success, setSuccess] = useState('')
   const formRef = useRef<HTMLDivElement>(null)
-  const nomeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pmcTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const fabricanteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
+  const nomeRef = useRef<HTMLInputElement>(null)
+  const eanRef = useRef<HTMLInputElement>(null)
 
   function formatPmcDisplay(cents: number): string {
     if (cents === 0) return ''
@@ -110,23 +111,9 @@ export function MedicamentosCadastroTab() {
     const value = roundMoney(cents / 100)
     setForm((prev) => ({ ...prev, precoMaximoConsumidor: value }))
     if (fieldErrors.precoMaximoConsumidor && value > 0) {
-      setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: undefined }))
+      setErroTemporario('precoMaximoConsumidor', undefined)
     }
   }
-
-  useEffect(() => () => {
-    if (nomeTimerRef.current) clearTimeout(nomeTimerRef.current)
-    if (pmcTimerRef.current) clearTimeout(pmcTimerRef.current)
-    if (fabricanteTimerRef.current) clearTimeout(fabricanteTimerRef.current)
-  }, [])
-
-  // Erros inline nos campos marcados com * no formulário.
-  const [fieldErrors, setFieldErrors] = useState<{
-    nomeComercial?: string
-    precoMaximoConsumidor?: string
-    fabricante?: string
-    categoria?: string
-  }>({})
 
   const medsQuery = useQuery({
     queryKey: ['medicamentos-cadastro'],
@@ -159,8 +146,8 @@ export function MedicamentosCadastroTab() {
     },
     onSuccess: () => {
       setSuccess(editId ? 'Medicamento atualizado.' : 'Medicamento cadastrado.')
-      setError('')
-      setFieldErrors({})
+      clearError()
+      limparErros()
       setEditId(null)
       setForm(emptyForm())
       setPmcCents(0)
@@ -169,7 +156,22 @@ export function MedicamentosCadastroTab() {
     },
     onError: (err: unknown) => {
       setSuccess('')
-      setError(traduzirErroApi(err))
+      let afterDismiss: (() => void) | undefined
+      if (err instanceof ApiError) {
+        const fieldName = err.problem?.fields?.[0]?.name
+        if (fieldName === 'codigoEan') {
+          afterDismiss = () => {
+            setForm((prev) => ({ ...prev, codigoEan: '' }))
+            eanRef.current?.focus()
+          }
+        } else if (err.status === 409) {
+          afterDismiss = () => {
+            setForm((prev) => ({ ...prev, nomeComercial: '' }))
+            nomeRef.current?.focus()
+          }
+        }
+      }
+      showError(traduzirErroApi(err), afterDismiss)
     },
   })
 
@@ -183,14 +185,14 @@ export function MedicamentosCadastroTab() {
       qc.invalidateQueries({ queryKey: ['medicamentos'] })
       qc.invalidateQueries({ queryKey: ['medicamentos-cadastro'] })
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   function startNew() {
     setEditId(null)
     setForm(emptyForm())
     setPmcCents(0)
-    setError('')
+    clearError()
     setSuccess('')
     setFieldErrors({})
   }
@@ -199,7 +201,7 @@ export function MedicamentosCadastroTab() {
     setEditId(m.id)
     setForm(medToForm(m))
     setPmcCents(Math.round(m.precoMaximoConsumidor * 100))
-    setError('')
+    clearError()
     setSuccess('')
     setFieldErrors({})
   }
@@ -210,34 +212,10 @@ export function MedicamentosCadastroTab() {
     const pmcErr = validarNumeroPositivo(form.precoMaximoConsumidor, 'PMC (R$)')
     const fabErr = validarSelecao(form.fabricante.id, 'Fabricante')
     const catErr = validarSelecao(form.categoria.id, 'Categoria')
-    const MSG = 'Lembre-se: Campo Obrigatório.'
-    setFieldErrors({
-      nomeComercial: nomeErr ? MSG : undefined,
-      precoMaximoConsumidor: pmcErr ? MSG : undefined,
-      fabricante: fabErr ? MSG : undefined,
-      categoria: catErr ?? undefined,
-    })
-    if (nomeErr) {
-      if (nomeTimerRef.current) clearTimeout(nomeTimerRef.current)
-      nomeTimerRef.current = setTimeout(
-        () => setFieldErrors((prev) => ({ ...prev, nomeComercial: undefined })),
-        REQUIRED_MSG_DELAY_MS,
-      )
-    }
-    if (pmcErr) {
-      if (pmcTimerRef.current) clearTimeout(pmcTimerRef.current)
-      pmcTimerRef.current = setTimeout(
-        () => setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: undefined })),
-        REQUIRED_MSG_DELAY_MS,
-      )
-    }
-    if (fabErr) {
-      if (fabricanteTimerRef.current) clearTimeout(fabricanteTimerRef.current)
-      fabricanteTimerRef.current = setTimeout(
-        () => setFieldErrors((prev) => ({ ...prev, fabricante: undefined })),
-        REQUIRED_MSG_DELAY_MS,
-      )
-    }
+    setErroTemporario('nomeComercial', nomeErr ? MSG_OBRIGATORIO : undefined)
+    setErroTemporario('precoMaximoConsumidor', pmcErr ? MSG_OBRIGATORIO : undefined)
+    setErroTemporario('fabricante', fabErr ? MSG_OBRIGATORIO : undefined)
+    setErroTemporario('categoria', catErr ? MSG_OBRIGATORIO : undefined)
     const valido = !nomeErr && !pmcErr && !fabErr && !catErr
     if (!valido) focarPrimeiroErro(formRef.current)
     return valido
@@ -346,22 +324,17 @@ export function MedicamentosCadastroTab() {
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
           <div ref={formRef} className="space-y-3">
           <Input
+            ref={nomeRef}
             label="Nome comercial *"
             value={form.nomeComercial}
             onChange={(e) => {
               setForm({ ...form, nomeComercial: e.target.value })
               if (fieldErrors.nomeComercial && e.target.value.trim()) {
-                setFieldErrors((prev) => ({ ...prev, nomeComercial: undefined }))
+                setErroTemporario('nomeComercial', undefined)
               }
             }}
             onBlur={() => {
-              if (!form.nomeComercial.trim()) {
-                if (nomeTimerRef.current) clearTimeout(nomeTimerRef.current)
-                setFieldErrors((prev) => ({ ...prev, nomeComercial: 'Lembre-se: Campo Obrigatório.' }))
-                nomeTimerRef.current = setTimeout(() => {
-                  setFieldErrors((prev) => ({ ...prev, nomeComercial: undefined }))
-                }, REQUIRED_MSG_DELAY_MS)
-              }
+              if (!form.nomeComercial.trim()) setErroTemporario('nomeComercial', MSG_OBRIGATORIO)
             }}
             error={fieldErrors.nomeComercial}
           />
@@ -372,6 +345,7 @@ export function MedicamentosCadastroTab() {
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
+              ref={eanRef}
               label="EAN-13"
               value={form.codigoEan ?? ''}
               onChange={(e) => setForm({ ...form, codigoEan: onlyDigits(e.target.value).slice(0, 13) })}
@@ -386,13 +360,8 @@ export function MedicamentosCadastroTab() {
               value={formatPmcDisplay(pmcCents)}
               onChange={handlePmcChange}
               onBlur={() => {
-                const err = validarNumeroPositivo(form.precoMaximoConsumidor, 'PMC (R$)') ?? undefined
-                if (err) {
-                  if (pmcTimerRef.current) clearTimeout(pmcTimerRef.current)
-                  setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: 'Lembre-se: Campo Obrigatório.' }))
-                  pmcTimerRef.current = setTimeout(() => {
-                    setFieldErrors((prev) => ({ ...prev, precoMaximoConsumidor: undefined }))
-                  }, REQUIRED_MSG_DELAY_MS)
+                if (validarNumeroPositivo(form.precoMaximoConsumidor, 'PMC (R$)')) {
+                  setErroTemporario('precoMaximoConsumidor', MSG_OBRIGATORIO)
                 }
               }}
               error={fieldErrors.precoMaximoConsumidor}
@@ -458,20 +427,11 @@ export function MedicamentosCadastroTab() {
             onChange={(v) => {
               setForm({ ...form, fabricante: { id: v } })
               if (fieldErrors.fabricante) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  fabricante: validarSelecao(v, 'Fabricante') ?? undefined,
-                }))
+                setErroTemporario('fabricante', validarSelecao(v, 'Fabricante') ?? undefined)
               }
             }}
             onBlur={() => {
-              if (!form.fabricante.id) {
-                if (fabricanteTimerRef.current) clearTimeout(fabricanteTimerRef.current)
-                setFieldErrors((prev) => ({ ...prev, fabricante: 'Lembre-se: Campo Obrigatório.' }))
-                fabricanteTimerRef.current = setTimeout(() => {
-                  setFieldErrors((prev) => ({ ...prev, fabricante: undefined }))
-                }, REQUIRED_MSG_DELAY_MS)
-              }
+              if (!form.fabricante.id) setErroTemporario('fabricante', MSG_OBRIGATORIO)
             }}
             options={fabricanteOpts}
             loading={fabricantesQuery.isLoading}
@@ -529,12 +489,12 @@ export function MedicamentosCadastroTab() {
             <Button
               type="button"
               loading={saveMutation.isPending}
-              disabled={saveMutation.isPending || !formularioPronto()}
+              disabled={saveMutation.isPending}
               onClick={tentarSalvar}
               className="relative overflow-hidden"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-black/50 transition-all duration-500"
+                className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
                 style={{ width: `${100 - calcularProgresso()}%` }}
               />
               <span className="relative">Cadastrar medicamento</span>

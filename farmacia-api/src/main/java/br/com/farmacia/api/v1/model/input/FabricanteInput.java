@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.validator.constraints.br.CNPJ;
 
 /**
  * DTO de cadastro de fabricante (Cadastros → Fabricantes).
@@ -23,6 +24,7 @@ public class FabricanteInput {
 
     /** CNPJ com 14 dígitos — obrigatório no banco; aceita até 18 chars com máscara na API. */
     @NotBlank(message = "CNPJ é obrigatório")
+    @CNPJ(message = "CNPJ inválido.")
     @Size(max = 18)
     private String cnpj;
 }

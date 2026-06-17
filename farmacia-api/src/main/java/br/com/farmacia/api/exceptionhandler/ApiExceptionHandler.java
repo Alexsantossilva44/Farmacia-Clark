@@ -35,6 +35,7 @@ import br.com.farmacia.domain.financeiro.exception.CaixaNaoEstaAbertoException;
 import br.com.farmacia.domain.financeiro.exception.FuncionarioInvalidoException;
 import br.com.farmacia.domain.financeiro.exception.PdvIndisponivelException;
 import br.com.farmacia.domain.financeiro.exception.PdvNaoEncontradoException;
+import br.com.farmacia.domain.medicamento.exception.FabricanteDuplicadoException;
 import br.com.farmacia.domain.medicamento.exception.MedicamentoDuplicadoException;
 import br.com.farmacia.domain.medicamento.exception.MedicamentoNaoEncontradoException;
 import br.com.farmacia.domain.medicamento.exception.PrecoAcimaPMCException;
@@ -210,6 +211,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Problem> handleMedicamentoNaoEncontrado(MedicamentoNaoEncontradoException ex) {
         return notFound(ex.getMessage(), "https://farmacia.com.br/medicamento-nao-encontrado",
             "Medicamento não encontrado", "O medicamento informado não foi localizado no sistema.");
+    }
+
+    @ExceptionHandler(FabricanteDuplicadoException.class)
+    public ResponseEntity<Problem> handleFabricanteDuplicado(FabricanteDuplicadoException ex) {
+        return conflict(ex.getMessage(), "https://farmacia.com.br/fabricante-duplicado",
+            "Fabricante duplicado", ex.getMessage());
     }
 
     @ExceptionHandler(MedicamentoDuplicadoException.class)
@@ -390,6 +397,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
             : "";
         String causeLower = cause != null ? cause.toLowerCase() : "";
 
+        if (causeLower.contains("fabricantes") && causeLower.contains("cnpj")) {
+            return conflict(
+                "CNPJ já cadastrado.",
+                "https://farmacia.com.br/cnpj-duplicado",
+                "CNPJ já cadastrado",
+                "Já existe um fabricante cadastrado com este CNPJ.");
+        }
         if (causeLower.contains("uk_clientes_telefone")) {
             return conflict(
                 "Telefone já está em uso.",

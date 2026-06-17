@@ -8,7 +8,7 @@ export function traduzirErroApi(erro: unknown): string {
   if (erro instanceof ApiError) {
     const campos = erro.problem?.fields?.filter((f) => f.userMessage)
     if (campos?.length) {
-      return campos.map((f) => f.userMessage).join(' ')
+      return campos.map((f) => f.userMessage).join('; ')
     }
     return resolverMensagemErroApi(
       erro.status,

@@ -3,7 +3,9 @@ package br.com.farmacia.api.v1.controller;
 import br.com.farmacia.api.v1.model.input.CategoriaInput;
 import br.com.farmacia.api.v1.model.input.FabricanteInput;
 import br.com.farmacia.api.v1.model.input.PrescritorInput;
+import br.com.farmacia.domain.compra.exception.CnpjDuplicadoException;
 import br.com.farmacia.domain.compra.exception.CnpjInvalidoException;
+import br.com.farmacia.domain.medicamento.exception.FabricanteDuplicadoException;
 import br.com.farmacia.api.v1.model.output.CatalogoModels.CategoriaModel;
 import br.com.farmacia.api.v1.model.output.CatalogoModels.FabricanteModel;
 import br.com.farmacia.api.v1.model.output.CatalogoModels.PrescritorModel;
@@ -61,16 +63,22 @@ public class CatalogoController {
     @PreAuthorize("hasAnyRole('GERENTE', 'ADMIN')")
     @Operation(summary = "Cadastrar fabricante")
     public FabricanteModel cadastrarFabricante(@RequestBody @Valid FabricanteInput input) {
-        // Normaliza e valida 14 dígitos — mesma regra de Fornecedor (CnpjInvalidoException).
         String cnpj = normalizarCnpj(input.getCnpj());
         if (cnpj.length() != 14) {
             throw new CnpjInvalidoException();
         }
+        if (fabricanteRepository.existsByCnpj(cnpj)) {
+            throw new CnpjDuplicadoException(input.getCnpj());
+        }
+        String razaoSocial = input.getRazaoSocial().trim();
+        if (fabricanteRepository.countByRazaoSocialAtivo(razaoSocial) > 0) {
+            throw new FabricanteDuplicadoException(razaoSocial);
+        }
         var entity = FabricanteJpaEntity.builder()
             .id(UUID.randomUUID())
-            .razaoSocial(input.getRazaoSocial().trim())
+            .razaoSocial(razaoSocial)
             .nomeFantasia(input.getNomeFantasia() != null ? input.getNomeFantasia().trim() : null)
-            .cnpj(cnpj) // sempre 14 dígitos — coluna fabricantes.cnpj CHAR(14)
+            .cnpj(cnpj)
             .ativo(true)
             .build();
         return toFabricanteModel(fabricanteRepository.save(entity));

@@ -108,7 +108,7 @@ export function Select({
             left: menuStyle.left,
             width: menuStyle.width,
           }}
-          className="z-[200] rounded-xl border border-white/15 bg-bg-elevated shadow-2xl overflow-hidden"
+          className="z-[200] rounded-xl border border-white/15 bg-bg-deep/90 backdrop-blur-xl shadow-2xl overflow-hidden"
         >
           {searchable && (
             <div className="px-2 pt-2 pb-1 border-b border-white/10">
@@ -169,7 +169,7 @@ export function Select({
   return (
     <div className="min-w-0 space-y-1.5" ref={rootRef}>
       {label && (
-        <label className="block text-xs sm:text-sm font-medium text-[#8b9cb3]">{label}</label>
+        <label className="block text-xs sm:text-sm font-medium text-[#a8bbd0]">{label}</label>
       )}
       <button
         ref={triggerRef}
@@ -187,7 +187,7 @@ export function Select({
           ${open ? 'ring-2 ring-mint/30 border-mint/20' : ''}
           ${error ? 'border-coral/50 ring-coral/20' : ''} ${className}`}
       >
-        <span className={`truncate text-sm ${selected ? 'text-white' : 'text-white/35'}`}>
+        <span className={`truncate text-sm ${selected ? 'text-white' : 'text-white/55'}`}>
           {loading ? 'Carregando…' : selected?.label ?? placeholder}
         </span>
         <ChevronDown

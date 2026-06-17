@@ -3,11 +3,12 @@ import { useRef, useState } from 'react'
 import { cadastrarFornecedor, fetchFornecedores } from '@/lib/api'
 import { canGerenciarCompras } from '@/lib/auth'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
+import { useErrosCampo, obrigatorio, calcularProgressoCampos } from '@/hooks/useErrosCampo'
 import { maskCnpjInput, onlyDigits, formatCnpjDisplay } from '@/lib/cadastro-options'
 import {
   focarPrimeiroErro,
   validarCnpj,
-  validarObrigatorio,
 } from '@/lib/validacao-formulario'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -27,13 +28,12 @@ export function FornecedoresCadastroTab() {
   const qc = useQueryClient()
   // Escopo do formulário para scroll/foco após validação (ver validacao-formulario.ts).
   const formRef = useRef<HTMLDivElement>(null)
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
   const [success, setSuccess] = useState('')
   const [razaoSocial, setRazaoSocial] = useState('')
   const [nomeFantasia, setNomeFantasia] = useState('')
   const [cnpj, setCnpj] = useState('')
-  // Mensagens por campo — alimentam a prop error de Input (borda e texto coral).
-  const [fieldErrors, setFieldErrors] = useState<{ razaoSocial?: string; cnpj?: string }>({})
 
   const fornecedoresQuery = useQuery({
     queryKey: ['fornecedores'],
@@ -50,8 +50,8 @@ export function FornecedoresCadastroTab() {
       }),
     onSuccess: () => {
       setSuccess('Fornecedor cadastrado.')
-      setError('')
-      setFieldErrors({})
+      clearError()
+      limparErros()
       setRazaoSocial('')
       setNomeFantasia('')
       setCnpj('')
@@ -59,18 +59,16 @@ export function FornecedoresCadastroTab() {
     },
     onError: (err: unknown) => {
       setSuccess('')
-      setError(traduzirErroApi(err))
+      showError(traduzirErroApi(err))
     },
   })
 
   /** Valida todos os obrigatórios no submit; não bloqueia o botão antecipadamente. */
   function validarFormulario(): boolean {
-    const razaoErr = validarObrigatorio(razaoSocial, 'Razão social')
+    const razaoErr = obrigatorio(razaoSocial)
     const cnpjErr = validarCnpj(cnpj, true)
-    setFieldErrors({
-      razaoSocial: razaoErr ?? undefined,
-      cnpj: cnpjErr ?? undefined,
-    })
+    setErroTemporario('razaoSocial', razaoErr)
+    setErroTemporario('cnpj', cnpjErr ?? undefined)
     const valido = !razaoErr && !cnpjErr
     if (!valido) focarPrimeiroErro(formRef.current)
     return valido
@@ -80,6 +78,13 @@ export function FornecedoresCadastroTab() {
   function tentarCadastrar() {
     if (!validarFormulario()) return
     saveMutation.mutate()
+  }
+
+  function calcularProgresso(): number {
+    return calcularProgressoCampos([
+      razaoSocial.trim().length > 0,
+      onlyDigits(cnpj).length === 14,
+    ])
   }
 
   if (!canGerenciarCompras()) {
@@ -136,19 +141,9 @@ export function FornecedoresCadastroTab() {
             value={razaoSocial}
             onChange={(e) => {
               setRazaoSocial(e.target.value)
-              if (fieldErrors.razaoSocial) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  razaoSocial: validarObrigatorio(e.target.value, 'Razão social') ?? undefined,
-                }))
-              }
+              if (fieldErrors.razaoSocial) setErroTemporario('razaoSocial', obrigatorio(e.target.value))
             }}
-            onBlur={() =>
-              setFieldErrors((prev) => ({
-                ...prev,
-                razaoSocial: validarObrigatorio(razaoSocial, 'Razão social') ?? undefined,
-              }))
-            }
+            onBlur={() => setErroTemporario('razaoSocial', obrigatorio(razaoSocial))}
             error={fieldErrors.razaoSocial}
           />
           <Input
@@ -161,19 +156,9 @@ export function FornecedoresCadastroTab() {
             value={cnpj}
             onChange={(e) => {
               setCnpj(maskCnpjInput(e.target.value))
-              if (fieldErrors.cnpj) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  cnpj: validarCnpj(e.target.value, true) ?? undefined,
-                }))
-              }
+              if (fieldErrors.cnpj) setErroTemporario('cnpj', validarCnpj(e.target.value, true) ?? undefined)
             }}
-            onBlur={() =>
-              setFieldErrors((prev) => ({
-                ...prev,
-                cnpj: validarCnpj(cnpj, true) ?? undefined,
-              }))
-            }
+            onBlur={() => setErroTemporario('cnpj', validarCnpj(cnpj, true) ?? undefined)}
             error={fieldErrors.cnpj}
             className="font-mono"
             placeholder="00.000.000/0000-00"
@@ -181,14 +166,17 @@ export function FornecedoresCadastroTab() {
             maxLength={18}
           />
         </div>
-        {/* disabled apenas durante loading — validação fica a cargo de tentarCadastrar */}
         <Button
-          className="mt-6"
+          className="mt-6 relative overflow-hidden"
           loading={saveMutation.isPending}
           disabled={saveMutation.isPending}
           onClick={tentarCadastrar}
         >
-          Cadastrar fornecedor
+          <div
+            className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
+            style={{ width: `${100 - calcularProgresso()}%` }}
+          />
+          <span className="relative">Cadastrar fornecedor</span>
         </Button>
         </div>
       </Card>

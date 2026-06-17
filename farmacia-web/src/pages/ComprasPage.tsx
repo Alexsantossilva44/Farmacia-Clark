@@ -14,6 +14,8 @@ import {
 import { canGerenciarCompras } from '@/lib/auth'
 import { dataIsoHojeLocal, formatCurrency, formatDateBR, roundMoney } from '@/lib/format'
 import { traduzirErroApi } from '@/lib/erros'
+import { useErro } from '@/hooks/useErro'
+import { useErrosCampo, MSG_OBRIGATORIO } from '@/hooks/useErrosCampo'
 import {
   focarPrimeiroErro,
   validarSelecao,
@@ -343,14 +345,11 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
   const formRef = useRef<HTMLDivElement>(null)
   const [fornecedorId, setFornecedorId] = useState('')
   const [itens, setItens] = useState<ItemPedidoCompraInput[]>([itemPedidoVazio()])
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
   const [showFornecedor, setShowFornecedor] = useState(false)
   const [novoFornRazao, setNovoFornRazao] = useState('')
   const [novoFornCnpj, setNovoFornCnpj] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<{
-    fornecedorId?: string
-    itens?: Array<{ medicamentoId?: string; quantidade?: string }>
-  }>({})
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
 
   const fornQuery = useQuery({ queryKey: ['fornecedores'], queryFn: fetchFornecedores })
   const medsQuery = useQuery({
@@ -369,7 +368,7 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
         })),
       }),
     onSuccess: onSucesso,
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   const fornOpts =
@@ -394,25 +393,22 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
       setNovoFornCnpj('')
       qc.invalidateQueries({ queryKey: ['fornecedores'] })
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
-  /** Valida cabeçalho e cada linha do pedido; erros por índice em fieldErrors.itens. */
+  /** Valida cabeçalho e cada linha do pedido; erros por chave plana em fieldErrors. */
   function validarPedido(): boolean {
-    const fornErr = validarSelecao(fornecedorId, 'Fornecedor')
-    const itemErrs = itens.map((item) => ({
-      medicamentoId: validarSelecao(item.medicamentoId, 'Medicamento') ?? undefined,
-      quantidade:
-        item.quantidadeSolicitada <= 0
-          ? 'Quantidade solicitada é obrigatória.'
-          : undefined,
-    }))
-    setFieldErrors({
-      fornecedorId: fornErr ?? undefined,
-      itens: itemErrs,
+    const fornErr = validarSelecao(fornecedorId)
+    setErroTemporario('fornecedorId', fornErr ?? undefined)
+    let todosItensValidos = true
+    itens.forEach((item, idx) => {
+      const medErr = validarSelecao(item.medicamentoId) ?? undefined
+      const qtdErr = item.quantidadeSolicitada <= 0 ? MSG_OBRIGATORIO : undefined
+      setErroTemporario(`itens.${idx}.medicamentoId`, medErr)
+      setErroTemporario(`itens.${idx}.quantidade`, qtdErr)
+      if (medErr || qtdErr) todosItensValidos = false
     })
-    const valido =
-      !fornErr && itemErrs.every((e) => !e.medicamentoId && !e.quantidade)
+    const valido = !fornErr && todosItensValidos
     if (!valido) focarPrimeiroErro(formRef.current)
     return valido
   }
@@ -436,7 +432,7 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
             options={fornOpts}
             loading={fornQuery.isLoading}
             placeholder="Selecione…"
-            error={fieldErrors.fornecedorId}
+            error={fieldErrors['fornecedorId']}
           />
           <p className="text-xs text-[#8b9cb3] mt-1">
             Cadastre em <strong className="text-white/80">Cadastros → Fornecedores</strong> (não confundir com
@@ -475,7 +471,7 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
             }
             options={medOpts}
             loading={medsQuery.isLoading}
-            error={fieldErrors.itens?.[idx]?.medicamentoId}
+            error={fieldErrors[`itens.${idx}.medicamentoId`]}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input
@@ -490,7 +486,7 @@ function NovoPedidoPanel({ onSucesso }: { onSucesso: () => void }) {
                   ),
                 )
               }
-              error={fieldErrors.itens?.[idx]?.quantidade}
+              error={fieldErrors[`itens.${idx}.quantidade`]}
             />
             <div>
               <Input
@@ -547,7 +543,7 @@ function NovaNotaPanel({
   const [chaveAcesso, setChaveAcesso] = useState('')
   const [dataEmissao, setDataEmissao] = useState('')
   const [itens, setItens] = useState<ItemNotaFiscalInput[]>([itemVazio()])
-  const [error, setError] = useState('')
+  const { error, showError, clearError } = useErro()
   const [showFornecedor, setShowFornecedor] = useState(false)
   const [novoFornRazao, setNovoFornRazao] = useState('')
   const [novoFornCnpj, setNovoFornCnpj] = useState('')
@@ -610,14 +606,14 @@ function NovaNotaPanel({
         })),
       }),
     onSuccess: (data) => {
-      setError('')
+      clearError()
       if (data.conferencia) {
         setConferencia(data.conferencia)
       } else {
         onSucesso()
       }
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   const fornMutation = useMutation({
@@ -633,7 +629,7 @@ function NovaNotaPanel({
       setNovoFornCnpj('')
       qc.invalidateQueries({ queryKey: ['fornecedores'] })
     },
-    onError: (err: unknown) => setError(traduzirErroApi(err)),
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   const valido =

@@ -22,6 +22,7 @@ import { canValidarReceita, getFuncionarioId, getUserEmail } from '@/lib/auth'
 import { formatDateBR, nivelControleLabel, statusReceitaLabel, statusReceitaVariant, tipoReceitaLabel } from '@/lib/format'
 import { traduzirErroApi } from '@/lib/erros'
 import { focarPrimeiroErro, validarObrigatorio, validarSelecao } from '@/lib/validacao-formulario'
+import { useErrosCampo, calcularProgressoCampos } from '@/hooks/useErrosCampo'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
@@ -61,11 +62,7 @@ export function ReceitasPage() {
   const [cid, setCid] = useState('')
   const novaFormRef = useRef<HTMLDivElement>(null)
   const buscaFormRef = useRef<HTMLDivElement>(null)
-  const [fieldErrors, setFieldErrors] = useState<{
-    numeroBusca?: string
-    numeroNova?: string
-    prescritorId?: string
-  }>({})
+  const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
 
   const [medId, setMedId] = useState('')
   const [quantidade, setQuantidade] = useState(1)
@@ -106,22 +103,17 @@ export function ReceitasPage() {
     })) ?? []
 
   const validarBusca = (): boolean => {
-    // Busca sem número não chama API — feedback imediato no campo.
-    const err = validarObrigatorio(numeroBusca, 'Número da receita')
-    setFieldErrors((prev) => ({ ...prev, numeroBusca: err ?? undefined }))
+    const err = validarObrigatorio(numeroBusca)
+    setErroTemporario('numeroBusca', err ?? undefined)
     if (err) focarPrimeiroErro(buscaFormRef.current)
     return !err
   }
 
   const validarNovaReceita = (): boolean => {
-    // Número e prescritor são obrigatórios na API; label do Select já indica *.
-    const numeroErr = validarObrigatorio(numeroNova, 'Número da receita')
-    const prescritorErr = validarSelecao(prescritorId, 'Prescritor')
-    setFieldErrors((prev) => ({
-      ...prev,
-      numeroNova: numeroErr ?? undefined,
-      prescritorId: prescritorErr ?? undefined,
-    }))
+    const numeroErr = validarObrigatorio(numeroNova)
+    const prescritorErr = validarSelecao(prescritorId)
+    setErroTemporario('numeroNova', numeroErr ?? undefined)
+    setErroTemporario('prescritorId', prescritorErr ?? undefined)
     const valido = !numeroErr && !prescritorErr
     if (!valido) focarPrimeiroErro(novaFormRef.current)
     return valido
@@ -177,6 +169,13 @@ export function ReceitasPage() {
     },
     onError: (err: unknown) => setError(traduzirErroApi(err)),
   })
+
+  function calcularProgressoNovaReceita(): number {
+    return calcularProgressoCampos([
+      numeroNova.trim().length > 0,
+      prescritorId.trim().length > 0,
+    ])
+  }
 
   const tabs: { id: Tab; label: string; icon: typeof FileText; hide?: boolean }[] = [
     { id: 'buscar', label: 'Consultar', icon: Search },
@@ -257,19 +256,9 @@ export function ReceitasPage() {
                   value={numeroBusca}
                   onChange={(e) => {
                     setNumeroBusca(e.target.value)
-                    if (fieldErrors.numeroBusca) {
-                      setFieldErrors((prev) => ({
-                        ...prev,
-                        numeroBusca: validarObrigatorio(e.target.value, 'Número da receita') ?? undefined,
-                      }))
-                    }
+                    if (fieldErrors.numeroBusca) setErroTemporario('numeroBusca', validarObrigatorio(e.target.value) ?? undefined)
                   }}
-                  onBlur={() =>
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      numeroBusca: validarObrigatorio(numeroBusca, 'Número da receita') ?? undefined,
-                    }))
-                  }
+                  onBlur={() => setErroTemporario('numeroBusca', validarObrigatorio(numeroBusca) ?? undefined)}
                   placeholder="RX-2026-0001"
                   className={`w-full flex-1 min-w-0 px-3 sm:px-4 rounded-xl glass ${inputCompact} focus:outline-none focus:ring-2 focus:ring-sky/30 ${fieldErrors.numeroBusca ? 'border-coral/50 ring-coral/20' : ''}`}
                 />
@@ -308,19 +297,9 @@ export function ReceitasPage() {
                 value={numeroNova}
                 onChange={(e) => {
                   setNumeroNova(e.target.value)
-                  if (fieldErrors.numeroNova) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      numeroNova: validarObrigatorio(e.target.value, 'Número da receita') ?? undefined,
-                    }))
-                  }
+                  if (fieldErrors.numeroNova) setErroTemporario('numeroNova', validarObrigatorio(e.target.value) ?? undefined)
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    numeroNova: validarObrigatorio(numeroNova, 'Número da receita') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('numeroNova', validarObrigatorio(numeroNova) ?? undefined)}
                 error={fieldErrors.numeroNova}
                 placeholder="RX-2026-0001"
                 className={inputCompact}
@@ -349,19 +328,9 @@ export function ReceitasPage() {
                 value={prescritorId}
                 onChange={(v) => {
                   setPrescritorId(v)
-                  if (fieldErrors.prescritorId) {
-                    setFieldErrors((prev) => ({
-                      ...prev,
-                      prescritorId: validarSelecao(v, 'Prescritor') ?? undefined,
-                    }))
-                  }
+                  if (fieldErrors.prescritorId) setErroTemporario('prescritorId', validarSelecao(v) ?? undefined)
                 }}
-                onBlur={() =>
-                  setFieldErrors((prev) => ({
-                    ...prev,
-                    prescritorId: validarSelecao(prescritorId, 'Prescritor') ?? undefined,
-                  }))
-                }
+                onBlur={() => setErroTemporario('prescritorId', validarSelecao(prescritorId) ?? undefined)}
                 options={prescritorOpts}
                 loading={prescritoresQuery.isLoading}
                 className={inputCompact}
@@ -381,7 +350,7 @@ export function ReceitasPage() {
             </div>
             <Button
               size="lg"
-              className="w-full shrink-0 mt-3 sm:mt-4"
+              className="w-full shrink-0 mt-3 sm:mt-4 relative overflow-hidden"
               loading={cadastroMutation.isPending}
               onClick={() => {
                 if (!validarNovaReceita()) return
@@ -389,8 +358,14 @@ export function ReceitasPage() {
               }}
               disabled={cadastroMutation.isPending}
             >
-              <Plus className="size-4" />
-              Cadastrar receita
+              <div
+                className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
+                style={{ width: `${100 - calcularProgressoNovaReceita()}%` }}
+              />
+              <span className="relative flex items-center gap-1.5">
+                <Plus className="size-4" />
+                Cadastrar receita
+              </span>
             </Button>
           </Card>
         )}

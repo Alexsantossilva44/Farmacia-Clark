@@ -16,7 +16,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const exibirToggle = isPassword && showPasswordToggle !== false
     const inputType = exibirToggle && senhaVisivel ? 'text' : type
 
-    const inputClassName = `w-full px-4 py-3 rounded-xl glass bg-white/[0.03] text-white placeholder:text-white/30
+    const inputClassName = `w-full px-4 py-3 rounded-xl glass text-white placeholder:text-white/50
       focus:outline-none focus:ring-2 focus:ring-mint/40 focus:border-mint/30
       transition-all duration-200 ${exibirToggle ? 'pr-11' : ''}
       ${error ? 'border-coral/50' : ''} ${className}`
@@ -24,7 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="min-w-0 space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-[#8b9cb3]">
+          <label htmlFor={inputId} className="block text-sm font-medium text-[#a8bbd0]">
             {label}
           </label>
         )}

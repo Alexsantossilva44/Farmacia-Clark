@@ -22,8 +22,7 @@ import java.util.UUID;
 @Setter
 public class MedicamentoInput {
 
-    @Size(min = 13, max = 13, message = "Código EAN deve ter exatamente 13 dígitos")
-    @Pattern(regexp = "\\d{13}", message = "Código EAN deve conter apenas números")
+    @Pattern(regexp = "\\d{13}", message = "EAN deve conter exatamente 13 dígitos numéricos")
     private String codigoEan;
 
     @Size(max = 15, message = "Código ANVISA deve ter no máximo 15 caracteres")
