@@ -229,6 +229,17 @@ export async function cadastrarPrescritor(input: import('@/types/catalogo').Pres
   })
 }
 
+export async function atualizarPrescritor(id: string, input: import('@/types/catalogo').PrescritorInput) {
+  return api<import('@/types/catalogo').Prescritor>(`/api/v1/catalogo/prescritores/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function excluirPrescritor(id: string) {
+  return api<void>(`/api/v1/catalogo/prescritores/${id}`, { method: 'DELETE' })
+}
+
 // ── Caixa ──────────────────────────────────────────────────────────────────
 
 export async function abrirCaixa(input: {

@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -144,6 +145,31 @@ public class CatalogoController {
             .createdAt(LocalDateTime.now())
             .build();
         return toPrescritorModel(prescritorRepository.save(entity));
+    }
+
+    @PutMapping("/prescritores/{id}")
+    @PreAuthorize("hasAnyRole('BALCONISTA', 'FARMACEUTICO', 'GERENTE', 'ADMIN')")
+    @Operation(summary = "Atualizar prescritor")
+    public PrescritorModel atualizarPrescritor(@PathVariable UUID id, @RequestBody @Valid PrescritorInput input) {
+        var entity = prescritorRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Prescritor não encontrado"));
+        entity.setNome(input.getNome().trim());
+        entity.setCrm(input.getCrm().trim());
+        entity.setUfCrm(input.getUfCrm().trim().toUpperCase());
+        entity.setEspecialidade(input.getEspecialidade());
+        entity.setEmail(input.getEmail());
+        return toPrescritorModel(prescritorRepository.save(entity));
+    }
+
+    @DeleteMapping("/prescritores/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('BALCONISTA', 'FARMACEUTICO', 'GERENTE', 'ADMIN')")
+    @Operation(summary = "Inativar prescritor (soft delete)")
+    public void inativarPrescritor(@PathVariable UUID id) {
+        var entity = prescritorRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Prescritor não encontrado"));
+        entity.setAtivo(false);
+        prescritorRepository.save(entity);
     }
 
     private FabricanteModel toFabricanteModel(FabricanteJpaEntity e) {

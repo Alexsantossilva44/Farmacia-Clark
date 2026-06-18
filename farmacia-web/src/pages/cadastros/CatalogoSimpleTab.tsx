@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useErrosCampo, MSG_OBRIGATORIO, obrigatorio, calcularProgressoCampos, DELAY_ERRO_MS } from '@/hooks/useErrosCampo'
 import {
   ApiError,
+  atualizarPrescritor,
   cadastrarCategoria,
   cadastrarFabricante,
   cadastrarPrescritor,
+  excluirPrescritor,
   fetchCategorias,
   fetchFabricantes,
   fetchPrescritores,
@@ -82,6 +85,30 @@ export function CatalogoSimpleTab({ kind }: Props) {
   const [crm, setCrm] = useState('')
   const [ufCrm, setUfCrm] = useState('SP')
   const [especialidade, setEspecialidade] = useState('')
+  const [editId, setEditId] = useState<string | null>(null)
+
+  function startEdit(p: Prescritor) {
+    setEditId(p.id)
+    setNomePrescritor(p.nome)
+    setCrm(p.crm)
+    setUfCrm(p.ufCrm)
+    setEspecialidade(p.especialidade ?? '')
+    clearError()
+    setSuccess('')
+    limparErros()
+    setTimeout(() => formRef.current?.querySelector<HTMLElement>('input')?.focus(), 0)
+  }
+
+  function startNew() {
+    setEditId(null)
+    setNomePrescritor('')
+    setCrm('')
+    setUfCrm('SP')
+    setEspecialidade('')
+    clearError()
+    setSuccess('')
+    limparErros()
+  }
 
   const fabricantesQuery = useQuery({
     queryKey: ['fabricantes'],
@@ -121,15 +148,17 @@ export function CatalogoSimpleTab({ kind }: Props) {
         })
       }
       // especialidade sempre enviada — alinhado ao @NotBlank de PrescritorInput na API.
-      return cadastrarPrescritor({
+      const prescritorPayload = {
         nome: nomePrescritor.trim(),
         crm: crm.trim(),
         ufCrm,
         especialidade: especialidade.trim(),
-      })
+      }
+      if (editId) return atualizarPrescritor(editId, prescritorPayload)
+      return cadastrarPrescritor(prescritorPayload)
     },
     onSuccess: () => {
-      setSuccess('Cadastro realizado com sucesso.')
+      setSuccess(editId ? 'Prescritor atualizado.' : 'Cadastro realizado com sucesso.')
       clearError()
       limparErros()
       if (kind === 'fabricantes') {
@@ -142,6 +171,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
         setDescricao('')
         qc.invalidateQueries({ queryKey: ['categorias'] })
       } else {
+        setEditId(null)
         setNomePrescritor('')
         setCrm('')
         setEspecialidade('')
@@ -174,6 +204,21 @@ export function CatalogoSimpleTab({ kind }: Props) {
       }
       showError(traduzirErroApi(err))
     },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => excluirPrescritor(id),
+    onSuccess: () => {
+      setSuccess('Prescritor inativado.')
+      setEditId(null)
+      setNomePrescritor('')
+      setCrm('')
+      setUfCrm('SP')
+      setEspecialidade('')
+      limparErros()
+      qc.invalidateQueries({ queryKey: ['prescritores'] })
+    },
+    onError: (err: unknown) => showError(traduzirErroApi(err)),
   })
 
   const gerenteOnly = kind === 'fabricantes' || kind === 'categorias'
@@ -250,7 +295,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
   function checarNomePrescitorDuplicado(): boolean {
     const lista = qc.getQueryData<Prescritor[]>(['prescritores']) ?? []
     return lista.some(
-      p => p.nome.trim().toLowerCase() === nomePrescritor.trim().toLowerCase()
+      p => p.id !== editId && p.nome.trim().toLowerCase() === nomePrescritor.trim().toLowerCase()
     )
   }
 
@@ -258,7 +303,8 @@ export function CatalogoSimpleTab({ kind }: Props) {
     const lista = qc.getQueryData<Prescritor[]>(['prescritores']) ?? []
     return lista.some(
       p =>
-        p.crm.trim().toLowerCase() === crm.trim().toLowerCase() &&
+        p.id !== editId &&
+        p.crm.trim() === crm.trim() &&
         p.ufCrm.trim().toUpperCase() === ufCrm.trim().toUpperCase()
     )
   }
@@ -355,13 +401,22 @@ export function CatalogoSimpleTab({ kind }: Props) {
             ))}
           {kind === 'prescritores' &&
             prescritoresOrdenados.map((p) => (
-              <div key={p.id} className="px-4 py-3">
-                <p className="font-medium text-sm">{p.nome}</p>
-                <p className="text-xs text-[#8b9cb3] font-mono">
-                  CRM {p.crm}/{p.ufCrm}
-                  {p.especialidade ? ` · ${p.especialidade}` : ''}
-                </p>
-              </div>
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => startEdit(p)}
+                className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors flex items-center justify-between gap-2
+                  ${editId === p.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
+              >
+                <div>
+                  <p className="font-medium text-sm">{p.nome}</p>
+                  <p className="text-xs text-[#8b9cb3] font-mono">
+                    CRM {p.crm}/{p.ufCrm}
+                    {p.especialidade ? ` · ${p.especialidade}` : ''}
+                  </p>
+                </div>
+                <Pencil className="size-3.5 text-[#8b9cb3] shrink-0" />
+              </button>
             ))}
         </div>
       </div>
@@ -369,10 +424,9 @@ export function CatalogoSimpleTab({ kind }: Props) {
       <Card className="p-5 sm:p-6 shrink-0 self-start xl:self-stretch xl:overflow-visible">
         <div ref={formRef}>
         <h2 className="font-semibold mb-4">
-          {/* Título específico por aba — substitui o genérico "Novo cadastro". */}
           {kind === 'fabricantes' && 'Novo Fabricante'}
           {kind === 'categorias' && 'Nova Categoria'}
-          {kind === 'prescritores' && 'Novo Prescritor'}
+          {kind === 'prescritores' && (editId ? 'Editar Prescritor' : 'Novo Prescritor')}
         </h2>
         {error && <p className="text-sm text-coral mb-3">{error}</p>}
         {success && <p className="text-sm text-mint mb-3">{success}</p>}
@@ -552,22 +606,48 @@ export function CatalogoSimpleTab({ kind }: Props) {
           )}
         </div>
 
-        <Button
-          className="mt-6 relative overflow-hidden"
-          loading={saveMutation.isPending}
-          disabled={saveMutation.isPending}
-          onClick={tentarCadastrar}
-        >
-          <div
-            className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
-            style={{ width: `${100 - calcularProgresso()}%` }}
-          />
-          <span className="relative">
-            {kind === 'fabricantes' && 'Cadastrar fabricante'}
-            {kind === 'categorias' && 'Cadastrar categoria'}
-            {kind === 'prescritores' && 'Cadastrar prescritor'}
-          </span>
-        </Button>
+        {kind === 'prescritores' && editId ? (
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button
+              loading={saveMutation.isPending}
+              disabled={saveMutation.isPending || deleteMutation.isPending}
+              onClick={tentarCadastrar}
+            >
+              Salvar alterações
+            </Button>
+            <Button
+              variant="danger"
+              loading={deleteMutation.isPending}
+              disabled={saveMutation.isPending || deleteMutation.isPending}
+              onClick={() => {
+                if (window.confirm('Inativar este prescritor?')) deleteMutation.mutate(editId)
+              }}
+            >
+              <Trash2 className="size-4" />
+              Inativar
+            </Button>
+            <Button variant="ghost" disabled={saveMutation.isPending || deleteMutation.isPending} onClick={startNew}>
+              Cancelar
+            </Button>
+          </div>
+        ) : (
+          <Button
+            className="mt-6 relative overflow-hidden"
+            loading={saveMutation.isPending}
+            disabled={saveMutation.isPending}
+            onClick={tentarCadastrar}
+          >
+            <div
+              className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
+              style={{ width: `${100 - calcularProgresso()}%` }}
+            />
+            <span className="relative">
+              {kind === 'fabricantes' && 'Cadastrar fabricante'}
+              {kind === 'categorias' && 'Cadastrar categoria'}
+              {kind === 'prescritores' && 'Cadastrar prescritor'}
+            </span>
+          </Button>
+        )}
         </div>
       </Card>
     </div>
