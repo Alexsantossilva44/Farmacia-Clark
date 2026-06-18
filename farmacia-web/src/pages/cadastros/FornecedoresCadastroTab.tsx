@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { cadastrarFornecedor, fetchFornecedores } from '@/lib/api'
 import { canGerenciarCompras } from '@/lib/auth'
+import type { Fornecedor } from '@/types/compra'
 import { traduzirErroApi } from '@/lib/erros'
 import { useErro } from '@/hooks/useErro'
-import { useErrosCampo, obrigatorio, calcularProgressoCampos } from '@/hooks/useErrosCampo'
+import { useErrosCampo, obrigatorio, calcularProgressoCampos, DELAY_ERRO_MS } from '@/hooks/useErrosCampo'
 import { maskCnpjInput, onlyDigits, formatCnpjDisplay } from '@/lib/cadastro-options'
 import {
   focarPrimeiroErro,
@@ -56,12 +57,35 @@ export function FornecedoresCadastroTab() {
       setNomeFantasia('')
       setCnpj('')
       qc.invalidateQueries({ queryKey: ['fornecedores'] })
+      setTimeout(() => {
+        formRef.current?.querySelector<HTMLElement>('input')?.focus()
+      }, 0)
     },
     onError: (err: unknown) => {
       setSuccess('')
       showError(traduzirErroApi(err))
     },
   })
+
+  function checarRazaoSocialDuplicada(): boolean {
+    const lista = qc.getQueryData<Fornecedor[]>(['fornecedores']) ?? []
+    return lista.some(
+      f => f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
+    )
+  }
+
+  function checarCnpjDuplicado(): boolean {
+    const lista = qc.getQueryData<Fornecedor[]>(['fornecedores']) ?? []
+    return lista.some(f => f.cnpj === onlyDigits(cnpj))
+  }
+
+  function erroComLimpeza(campo: string, msg: string, limpar: () => void) {
+    setErroTemporario(campo, msg, DELAY_ERRO_MS)
+    setTimeout(() => {
+      limpar()
+      formRef.current?.querySelector<HTMLElement>('input')?.focus()
+    }, DELAY_ERRO_MS)
+  }
 
   /** Valida todos os obrigatórios no submit; não bloqueia o botão antecipadamente. */
   function validarFormulario(): boolean {
@@ -74,8 +98,19 @@ export function FornecedoresCadastroTab() {
     return valido
   }
 
-  /** Só envia à API se validarFormulario passou — evita 400 genérico da API. */
   function tentarCadastrar() {
+    if (checarRazaoSocialDuplicada()) {
+      erroComLimpeza('razaoSocial', 'Razão social já cadastrada.', () => setRazaoSocial(''))
+      return
+    }
+    if (checarCnpjDuplicado()) {
+      setErroTemporario('cnpj', 'CNPJ já cadastrado.', DELAY_ERRO_MS)
+      setTimeout(() => {
+        setCnpj('')
+        formRef.current?.querySelectorAll<HTMLElement>('input')?.[2]?.focus()
+      }, DELAY_ERRO_MS)
+      return
+    }
     if (!validarFormulario()) return
     saveMutation.mutate()
   }
@@ -140,16 +175,28 @@ export function FornecedoresCadastroTab() {
             label="Razão social *"
             value={razaoSocial}
             onChange={(e) => {
-              setRazaoSocial(e.target.value)
-              if (fieldErrors.razaoSocial) setErroTemporario('razaoSocial', obrigatorio(e.target.value))
+              const v = e.target.value
+              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              setRazaoSocial(v)
+              if (fieldErrors.razaoSocial && v.trim()) setErroTemporario('razaoSocial', undefined)
             }}
-            onBlur={() => setErroTemporario('razaoSocial', obrigatorio(razaoSocial))}
+            onBlur={() => {
+              const vazio = obrigatorio(razaoSocial)
+              if (vazio) { setErroTemporario('razaoSocial', vazio); return }
+              if (checarRazaoSocialDuplicada()) {
+                erroComLimpeza('razaoSocial', 'Razão social já cadastrada.', () => setRazaoSocial(''))
+              }
+            }}
             error={fieldErrors.razaoSocial}
           />
           <Input
             label="Nome fantasia"
             value={nomeFantasia}
-            onChange={(e) => setNomeFantasia(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              setNomeFantasia(v)
+            }}
           />
           <Input
             label="CNPJ *"
@@ -158,7 +205,17 @@ export function FornecedoresCadastroTab() {
               setCnpj(maskCnpjInput(e.target.value))
               if (fieldErrors.cnpj) setErroTemporario('cnpj', validarCnpj(e.target.value, true) ?? undefined)
             }}
-            onBlur={() => setErroTemporario('cnpj', validarCnpj(cnpj, true) ?? undefined)}
+            onBlur={() => {
+              const cnpjErr = validarCnpj(cnpj, true)
+              if (cnpjErr) { setErroTemporario('cnpj', cnpjErr); return }
+              if (checarCnpjDuplicado()) {
+                setErroTemporario('cnpj', 'CNPJ já cadastrado.', DELAY_ERRO_MS)
+                setTimeout(() => {
+                  setCnpj('')
+                  formRef.current?.querySelectorAll<HTMLElement>('input')?.[2]?.focus()
+                }, DELAY_ERRO_MS)
+              }
+            }}
             error={fieldErrors.cnpj}
             className="font-mono"
             placeholder="00.000.000/0000-00"

@@ -7,7 +7,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class FornecedorInput {
-    @NotBlank private String razaoSocial;
+    @NotBlank
+    private String razaoSocial;
+
     private String nomeFantasia;
+
     @NotBlank private String cnpj;
 }

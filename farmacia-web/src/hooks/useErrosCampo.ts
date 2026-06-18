@@ -3,7 +3,8 @@ import { MSG_OBRIGATORIO } from '@/lib/validacao-formulario'
 
 export { MSG_OBRIGATORIO }
 
-const DELAY_MS = 2000
+export const DELAY_AVISO_MS = 2000
+export const DELAY_ERRO_MS = 3000
 
 export function obrigatorio(valor: string): string | undefined {
   return valor.trim() ? undefined : MSG_OBRIGATORIO
@@ -23,13 +24,13 @@ export function useErrosCampo() {
     return () => { Object.values(timers).forEach(clearTimeout) }
   }, [])
 
-  function setErroTemporario(campo: string, mensagem: string | undefined) {
+  function setErroTemporario(campo: string, mensagem: string | undefined, delay = DELAY_AVISO_MS) {
     setFieldErrors((prev) => ({ ...prev, [campo]: mensagem }))
     if (mensagem) {
       if (timersRef.current[campo]) clearTimeout(timersRef.current[campo])
       timersRef.current[campo] = setTimeout(
         () => setFieldErrors((prev) => ({ ...prev, [campo]: undefined })),
-        DELAY_MS,
+        delay,
       )
     }
   }

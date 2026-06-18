@@ -328,10 +328,10 @@ export function MedicamentosCadastroTab() {
             label="Nome comercial *"
             value={form.nomeComercial}
             onChange={(e) => {
-              setForm({ ...form, nomeComercial: e.target.value })
-              if (fieldErrors.nomeComercial && e.target.value.trim()) {
-                setErroTemporario('nomeComercial', undefined)
-              }
+              const v = e.target.value
+              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              setForm({ ...form, nomeComercial: v })
+              if (fieldErrors.nomeComercial && v.trim()) setErroTemporario('nomeComercial', undefined)
             }}
             onBlur={() => {
               if (!form.nomeComercial.trim()) setErroTemporario('nomeComercial', MSG_OBRIGATORIO)
@@ -341,7 +341,11 @@ export function MedicamentosCadastroTab() {
           <Input
             label="Nome genérico (DCB)"
             value={form.nomeGenerico ?? ''}
-            onChange={(e) => setForm({ ...form, nomeGenerico: e.target.value })}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              setForm({ ...form, nomeGenerico: v })
+            }}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
