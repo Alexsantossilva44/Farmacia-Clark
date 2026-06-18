@@ -119,11 +119,15 @@ public class CatalogoController {
     @PutMapping("/categorias/{id}")
     @PreAuthorize("hasAnyRole('GERENTE', 'ADMIN')")
     @Operation(summary = "Atualizar categoria")
-    public CategoriaModel atualizarCategoria(@PathVariable UUID id, @RequestBody @Valid CategoriaInput input) {
+    public CategoriaModel atualizarCategoria(@PathVariable UUID id, @RequestBody CategoriaInput input) {
+        if (input.getNome() == null || input.getNome().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Nome da categoria é obrigatório");
+        }
         var entity = categoriaRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada"));
         entity.setNome(input.getNome().trim());
-        entity.setDescricao(input.getDescricao());
+        String desc = input.getDescricao();
+        entity.setDescricao(desc != null && !desc.isBlank() ? desc.trim() : null);
         return toCategoriaModel(categoriaRepository.save(entity));
     }
 

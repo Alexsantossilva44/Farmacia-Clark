@@ -284,11 +284,9 @@ export function CatalogoSimpleTab({ kind }: Props) {
         cnpj: validarCnpj(cnpj, true) ?? undefined,
       }
     } else if (kind === 'categorias') {
-      const catErr = obrigatorio(nomeCategoria)
-      const descErr = obrigatorio(descricao)
       erros = {
-        nomeCategoria: catErr,
-        descricao: descErr,
+        nomeCategoria: obrigatorio(nomeCategoria),
+        ...(editId ? {} : { descricao: obrigatorio(descricao) }),
       }
     } else {
       const nomeErr = obrigatorio(nomePrescritor)
@@ -549,7 +547,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 error={fieldErrors.nomeCategoria}
               />
               <Input
-                label="Descrição *"
+                label={editId ? 'Descrição' : 'Descrição *'}
                 value={descricao}
                 onChange={(e) => {
                   const v = e.target.value
@@ -558,7 +556,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
                   if (fieldErrors.descricao && v.trim()) setErroTemporario('descricao', undefined)
                 }}
                 onBlur={() => {
-                  if (!descricao.trim()) setErroTemporario('descricao', obrigatorio(descricao) ?? undefined)
+                  if (!editId && !descricao.trim()) setErroTemporario('descricao', obrigatorio(descricao) ?? undefined)
                 }}
                 error={fieldErrors.descricao}
               />
