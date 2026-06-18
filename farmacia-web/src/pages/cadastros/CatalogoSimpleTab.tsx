@@ -554,8 +554,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
                   label="CRM *"
                   value={crm}
                   onChange={(e) => {
-                    const v = e.target.value
-                    if (v && !/^[0-9]/.test(v)) return
+                    const v = onlyDigits(e.target.value)
                     setCrm(v)
                     if (fieldErrors.crm && v.trim()) setErroTemporario('crm', undefined)
                   }}
