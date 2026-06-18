@@ -116,6 +116,28 @@ public class CatalogoController {
         return toCategoriaModel(categoriaRepository.save(entity));
     }
 
+    @PutMapping("/categorias/{id}")
+    @PreAuthorize("hasAnyRole('GERENTE', 'ADMIN')")
+    @Operation(summary = "Atualizar categoria")
+    public CategoriaModel atualizarCategoria(@PathVariable UUID id, @RequestBody @Valid CategoriaInput input) {
+        var entity = categoriaRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada"));
+        entity.setNome(input.getNome().trim());
+        entity.setDescricao(input.getDescricao());
+        return toCategoriaModel(categoriaRepository.save(entity));
+    }
+
+    @DeleteMapping("/categorias/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('GERENTE', 'ADMIN')")
+    @Operation(summary = "Inativar categoria (soft delete)")
+    public void inativarCategoria(@PathVariable UUID id) {
+        var entity = categoriaRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada"));
+        entity.setAtivo(false);
+        categoriaRepository.save(entity);
+    }
+
     // ─── Prescritores ─────────────────────────────────────────────────────────
 
     @GetMapping("/prescritores")

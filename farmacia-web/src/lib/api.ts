@@ -218,6 +218,17 @@ export async function cadastrarCategoria(input: import('@/types/catalogo').Categ
   })
 }
 
+export async function atualizarCategoria(id: string, input: import('@/types/catalogo').CategoriaInput) {
+  return api<import('@/types/catalogo').Categoria>(`/api/v1/catalogo/categorias/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function excluirCategoria(id: string) {
+  return api<void>(`/api/v1/catalogo/categorias/${id}`, { method: 'DELETE' })
+}
+
 export async function fetchPrescritores() {
   return api<import('@/types/catalogo').Prescritor[]>('/api/v1/catalogo/prescritores')
 }
