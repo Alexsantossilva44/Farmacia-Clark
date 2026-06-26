@@ -195,7 +195,7 @@ export function MedicamentosCadastroTab() {
     setPmcCents(0)
     clearError()
     setSuccess('')
-    setFieldErrors({})
+    limparErros()
   }
 
   function startEdit(m: Medicamento) {
@@ -204,7 +204,7 @@ export function MedicamentosCadastroTab() {
     setPmcCents(Math.round(m.precoMaximoConsumidor * 100))
     clearError()
     setSuccess('')
-    setFieldErrors({})
+    limparErros()
   }
 
   /** PMC > 0 e selects preenchidos — antes o botão ficava cinza sem explicar o motivo. */
@@ -468,17 +468,14 @@ export function MedicamentosCadastroTab() {
             onChange={(v) => {
               setForm({ ...form, categoria: { id: v } })
               if (fieldErrors.categoria) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  categoria: validarSelecao(v, 'Categoria') ?? undefined,
-                }))
+                setErroTemporario('categoria', validarSelecao(v, 'Categoria') ?? undefined)
               }
             }}
             onBlur={() =>
-              setFieldErrors((prev) => ({
-                ...prev,
-                categoria: validarSelecao(form.categoria.id, 'Categoria') ?? undefined,
-              }))
+              setErroTemporario(
+                'categoria',
+                validarSelecao(form.categoria.id, 'Categoria') ?? undefined,
+              )
             }
             options={categoriaOpts}
             loading={categoriasQuery.isLoading}

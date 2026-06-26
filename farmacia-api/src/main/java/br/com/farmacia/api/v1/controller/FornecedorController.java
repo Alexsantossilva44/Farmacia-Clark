@@ -2,13 +2,9 @@ package br.com.farmacia.api.v1.controller;
 
 import br.com.farmacia.api.v1.assembler.CompraAssembler;
 import br.com.farmacia.api.v1.model.input.FornecedorInput;
-import br.com.farmacia.api.v1.model.input.NotaFiscalEntradaInput;
 import br.com.farmacia.api.v1.model.output.FornecedorModel;
-import br.com.farmacia.api.v1.model.output.NotaFiscalEntradaModel;
 import br.com.farmacia.application.compra.usecase.CadastrarFornecedorUseCase;
 import br.com.farmacia.application.compra.usecase.ListarFornecedoresUseCase;
-import br.com.farmacia.application.compra.usecase.ListarNotasFiscaisEntradaUseCase;
-import br.com.farmacia.application.compra.usecase.RegistrarNotaFiscalEntradaUseCase;
 import br.com.farmacia.domain.compra.exception.CnpjDuplicadoException;
 import br.com.farmacia.domain.compra.exception.CnpjInvalidoException;
 import br.com.farmacia.infrastructure.persistence.compra.FornecedorJpaEntity;
