@@ -8,18 +8,18 @@ import { CatalogoSimpleTab } from './cadastros/CatalogoSimpleTab'
 import { FornecedoresCadastroTab } from './cadastros/FornecedoresCadastroTab'
 
 const TABS: { id: CadastroTab; icon: typeof Pill }[] = [
-  { id: 'medicamentos', icon: Pill },
   { id: 'clientes', icon: Users },
   { id: 'fabricantes', icon: Factory },
   { id: 'fornecedores', icon: Truck },
   { id: 'categorias', icon: Tags },
   { id: 'prescritores', icon: Stethoscope },
+  { id: 'medicamentos', icon: Pill },
 ]
 
 export function CadastrosPage() {
   const [params, setParams] = useSearchParams()
-  const aba = (params.get('aba') as CadastroTab) || 'medicamentos'
-  const tabAtiva = TAB_LABELS[aba] ? aba : 'medicamentos'
+  const aba = (params.get('aba') as CadastroTab) || 'clientes'
+  const tabAtiva = TAB_LABELS[aba] ? aba : 'clientes'
 
   function setTab(id: CadastroTab) {
     setParams({ aba: id })
