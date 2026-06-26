@@ -52,6 +52,13 @@ export default defineConfig({
       dependencies: ['setup'],
       use: { ...devices['iPhone 13'] },
     },
+    {
+      name: 'cadastros',
+      testDir: './Playwright',
+      testMatch: /\.spec\.ts$/,
+      dependencies: ['setup'],
+      use: { ...devices['Desktop Chrome'], launchOptions: { slowMo: 800 } },
+    },
   ],
   webServer: managedServers
     ? [
