@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
-import { cadastrarFornecedor, fetchFornecedores } from '@/lib/api'
+import { Pencil } from 'lucide-react'
+import { atualizarFornecedor, cadastrarFornecedor, fetchFornecedores } from '@/lib/api'
 import { canGerenciarCompras } from '@/lib/auth'
 import type { Fornecedor } from '@/types/compra'
 import { traduzirErroApi } from '@/lib/erros'
@@ -16,10 +17,7 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 
 /**
- * Cadastro de fornecedores de compra (distribuidores / NF-e).
- *
- * Alteração: validação no clique em "Cadastrar fornecedor" — antes o botão ficava disabled
- * sem feedback visual; agora fieldErrors + focarPrimeiroErro guiam o usuário até Razão social e CNPJ.
+ * Cadastro e edição de fornecedores de compra (distribuidores / NF-e).
  */
 function comparePtBr(a: string, b: string): number {
   return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
@@ -27,11 +25,11 @@ function comparePtBr(a: string, b: string): number {
 
 export function FornecedoresCadastroTab() {
   const qc = useQueryClient()
-  // Escopo do formulário para scroll/foco após validação (ver validacao-formulario.ts).
   const formRef = useRef<HTMLDivElement>(null)
   const { error, showError, clearError } = useErro()
   const { fieldErrors, setErroTemporario, limparErros } = useErrosCampo()
   const [success, setSuccess] = useState('')
+  const [editId, setEditId] = useState<string | null>(null)
   const [razaoSocial, setRazaoSocial] = useState('')
   const [nomeFantasia, setNomeFantasia] = useState('')
   const [cnpj, setCnpj] = useState('')
@@ -42,17 +40,42 @@ export function FornecedoresCadastroTab() {
     staleTime: 30_000,
   })
 
+  function startEdit(f: Fornecedor) {
+    setEditId(f.id)
+    setRazaoSocial(f.razaoSocial)
+    setNomeFantasia(f.nomeFantasia ?? '')
+    setCnpj(formatCnpjDisplay(f.cnpj))
+    clearError()
+    setSuccess('')
+    limparErros()
+    setTimeout(() => formRef.current?.querySelector<HTMLElement>('input')?.focus(), 0)
+  }
+
+  function startNew() {
+    setEditId(null)
+    setRazaoSocial('')
+    setNomeFantasia('')
+    setCnpj('')
+    clearError()
+    setSuccess('')
+    limparErros()
+  }
+
   const saveMutation = useMutation({
-    mutationFn: () =>
-      cadastrarFornecedor({
+    mutationFn: () => {
+      const payload = {
         razaoSocial: razaoSocial.trim(),
         nomeFantasia: nomeFantasia.trim() || undefined,
         cnpj: onlyDigits(cnpj),
-      }),
+      }
+      if (editId) return atualizarFornecedor(editId, payload)
+      return cadastrarFornecedor(payload)
+    },
     onSuccess: () => {
-      setSuccess('Fornecedor cadastrado.')
+      setSuccess(editId ? 'Fornecedor atualizado.' : 'Fornecedor cadastrado.')
       clearError()
       limparErros()
+      setEditId(null)
       setRazaoSocial('')
       setNomeFantasia('')
       setCnpj('')
@@ -70,13 +93,13 @@ export function FornecedoresCadastroTab() {
   function checarRazaoSocialDuplicada(): boolean {
     const lista = qc.getQueryData<Fornecedor[]>(['fornecedores']) ?? []
     return lista.some(
-      f => f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
+      f => f.id !== editId && f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
     )
   }
 
   function checarCnpjDuplicado(): boolean {
     const lista = qc.getQueryData<Fornecedor[]>(['fornecedores']) ?? []
-    return lista.some(f => f.cnpj === onlyDigits(cnpj))
+    return lista.some(f => f.id !== editId && f.cnpj === onlyDigits(cnpj))
   }
 
   function erroComLimpeza(campo: string, msg: string, limpar: () => void) {
@@ -87,7 +110,6 @@ export function FornecedoresCadastroTab() {
     }, DELAY_ERRO_MS)
   }
 
-  /** Valida todos os obrigatórios no submit; não bloqueia o botão antecipadamente. */
   function validarFormulario(): boolean {
     const razaoErr = obrigatorio(razaoSocial)
     const cnpjErr = validarCnpj(cnpj, true)
@@ -98,7 +120,7 @@ export function FornecedoresCadastroTab() {
     return valido
   }
 
-  function tentarCadastrar() {
+  function tentarSalvar() {
     if (checarRazaoSocialDuplicada()) {
       erroComLimpeza('razaoSocial', 'Razão social já cadastrada.', () => setRazaoSocial(''))
       return
@@ -137,6 +159,8 @@ export function FornecedoresCadastroTab() {
     comparePtBr((a.nomeFantasia ?? a.razaoSocial).trim(), (b.nomeFantasia ?? b.razaoSocial).trim()),
   )
 
+  const tituloFormulario = editId ? 'Editar fornecedor' : 'Novo fornecedor'
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full min-h-0">
       <div className="flex flex-col min-h-0 overflow-hidden">
@@ -154,87 +178,113 @@ export function FornecedoresCadastroTab() {
             <p className="p-4 text-sm text-[#8b9cb3]">Nenhum fornecedor cadastrado.</p>
           )}
           {fornecedores.map((f) => (
-            <div key={f.id} className="px-4 py-3">
-              <p className="font-medium text-sm">{f.nomeFantasia ?? f.razaoSocial}</p>
-              <p className="text-xs text-[#8b9cb3]">
-                {f.razaoSocial}
-                {f.cnpj ? ` · CNPJ ${formatCnpjDisplay(f.cnpj)}` : ''}
-              </p>
-            </div>
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => startEdit(f)}
+              className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors flex items-center justify-between gap-2
+                ${editId === f.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
+            >
+              <div>
+                <p className="font-medium text-sm">{f.nomeFantasia ?? f.razaoSocial}</p>
+                <p className="text-xs text-[#8b9cb3]">
+                  {f.razaoSocial}
+                  {f.cnpj ? ` · CNPJ ${formatCnpjDisplay(f.cnpj)}` : ''}
+                </p>
+              </div>
+              <Pencil className="size-3.5 text-red-400 shrink-0" />
+            </button>
           ))}
         </div>
       </div>
 
       <Card className="p-5 sm:p-6 shrink-0 self-start xl:self-stretch">
         <div ref={formRef}>
-        <h2 className="font-semibold mb-4">Novo fornecedor</h2>
-        {error && <p className="text-sm text-coral mb-3">{error}</p>}
-        {success && <p className="text-sm text-mint mb-3">{success}</p>}
-        <div className="space-y-3">
-          <Input
-            label="Razão social *"
-            value={razaoSocial}
-            onChange={(e) => {
-              const v = e.target.value
-              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
-              setRazaoSocial(v)
-              if (fieldErrors.razaoSocial && v.trim()) setErroTemporario('razaoSocial', undefined)
-            }}
-            onBlur={() => {
-              const vazio = obrigatorio(razaoSocial)
-              if (vazio) { setErroTemporario('razaoSocial', vazio); return }
-              if (checarRazaoSocialDuplicada()) {
-                erroComLimpeza('razaoSocial', 'Razão social já cadastrada.', () => setRazaoSocial(''))
-              }
-            }}
-            error={fieldErrors.razaoSocial}
-          />
-          <Input
-            label="Nome fantasia"
-            value={nomeFantasia}
-            onChange={(e) => {
-              const v = e.target.value
-              if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
-              setNomeFantasia(v)
-            }}
-          />
-          <Input
-            label="CNPJ *"
-            value={cnpj}
-            onChange={(e) => {
-              setCnpj(maskCnpjInput(e.target.value))
-              if (fieldErrors.cnpj) setErroTemporario('cnpj', validarCnpj(e.target.value, true) ?? undefined)
-            }}
-            onBlur={() => {
-              const cnpjErr = validarCnpj(cnpj, true)
-              if (cnpjErr) { setErroTemporario('cnpj', cnpjErr); return }
-              if (checarCnpjDuplicado()) {
-                setErroTemporario('cnpj', 'CNPJ já cadastrado.', DELAY_ERRO_MS)
-                setTimeout(() => {
-                  setCnpj('')
-                  formRef.current?.querySelectorAll<HTMLElement>('input')?.[2]?.focus()
-                }, DELAY_ERRO_MS)
-              }
-            }}
-            error={fieldErrors.cnpj}
-            className="font-mono"
-            placeholder="00.000.000/0000-00"
-            inputMode="numeric"
-            maxLength={18}
-          />
-        </div>
-        <Button
-          className="mt-6 relative overflow-hidden"
-          loading={saveMutation.isPending}
-          disabled={saveMutation.isPending}
-          onClick={tentarCadastrar}
-        >
-          <div
-            className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
-            style={{ width: `${100 - calcularProgresso()}%` }}
-          />
-          <span className="relative">Cadastrar fornecedor</span>
-        </Button>
+          <h2 className="font-semibold mb-4">{tituloFormulario}</h2>
+          {error && <p className="text-sm text-coral mb-3">{error}</p>}
+          {success && <p className="text-sm text-mint mb-3">{success}</p>}
+          <div className="space-y-3">
+            <Input
+              label="Razão social *"
+              value={razaoSocial}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+                setRazaoSocial(v)
+                if (fieldErrors.razaoSocial && v.trim()) setErroTemporario('razaoSocial', undefined)
+              }}
+              onBlur={() => {
+                const vazio = obrigatorio(razaoSocial)
+                if (vazio) { setErroTemporario('razaoSocial', vazio); return }
+                if (checarRazaoSocialDuplicada()) {
+                  erroComLimpeza('razaoSocial', 'Razão social já cadastrada.', () => setRazaoSocial(''))
+                }
+              }}
+              error={fieldErrors.razaoSocial}
+            />
+            <Input
+              label="Nome fantasia"
+              value={nomeFantasia}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+                setNomeFantasia(v)
+              }}
+            />
+            <Input
+              label="CNPJ *"
+              value={cnpj}
+              onChange={(e) => {
+                setCnpj(maskCnpjInput(e.target.value))
+                if (fieldErrors.cnpj) setErroTemporario('cnpj', validarCnpj(e.target.value, true) ?? undefined)
+              }}
+              onBlur={() => {
+                const cnpjErr = validarCnpj(cnpj, true)
+                if (cnpjErr) { setErroTemporario('cnpj', cnpjErr); return }
+                if (checarCnpjDuplicado()) {
+                  setErroTemporario('cnpj', 'CNPJ já cadastrado.', DELAY_ERRO_MS)
+                  setTimeout(() => {
+                    setCnpj('')
+                    formRef.current?.querySelectorAll<HTMLElement>('input')?.[2]?.focus()
+                  }, DELAY_ERRO_MS)
+                }
+              }}
+              error={fieldErrors.cnpj}
+              className="font-mono"
+              placeholder="00.000.000/0000-00"
+              inputMode="numeric"
+              maxLength={18}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2 mt-6">
+            {editId ? (
+              <Button
+                loading={saveMutation.isPending}
+                disabled={saveMutation.isPending}
+                onClick={tentarSalvar}
+              >
+                Salvar alterações
+              </Button>
+            ) : (
+              <Button
+                className="relative overflow-hidden"
+                loading={saveMutation.isPending}
+                disabled={saveMutation.isPending}
+                onClick={tentarSalvar}
+              >
+                <div
+                  className="absolute inset-y-0 right-0 bg-black/20 transition-all duration-500"
+                  style={{ width: `${100 - calcularProgresso()}%` }}
+                />
+                <span className="relative">Cadastrar fornecedor</span>
+              </Button>
+            )}
+            {editId && (
+              <Button variant="ghost" onClick={startNew}>
+                Cancelar
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
     </div>

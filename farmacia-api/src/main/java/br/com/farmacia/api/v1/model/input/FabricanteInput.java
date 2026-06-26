@@ -16,10 +16,10 @@ import org.hibernate.validator.constraints.br.CNPJ;
 @Setter
 public class FabricanteInput {
     @NotBlank(message = "Razão social é obrigatória")
-    @Size(max = 150)
+    @Size(max = 80)
     private String razaoSocial;
 
-    @Size(max = 150)
+    @Size(max = 80)
     private String nomeFantasia;
 
     /** CNPJ com 14 dígitos — obrigatório no banco; aceita até 18 chars com máscara na API. */

@@ -92,7 +92,7 @@ export const DataNascimentoInput = forwardRef<HTMLInputElement, DataNascimentoIn
           </span>
         </div>
       </div>
-      {error && <p className="text-xs text-coral leading-snug">{error}</p>}
+      {error && <p className="text-sm min-h-[1.25rem] text-coral">{error}</p>}
     </div>
   )
 })

@@ -200,6 +200,13 @@ export async function fetchFabricantes() {
   return api<import('@/types/catalogo').Fabricante[]>('/api/v1/catalogo/fabricantes')
 }
 
+export async function atualizarFabricante(id: string, input: import('@/types/catalogo').FabricanteInput) {
+  return api<import('@/types/catalogo').Fabricante>(`/api/v1/catalogo/fabricantes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
+}
+
 export async function cadastrarFabricante(input: import('@/types/catalogo').FabricanteInput) {
   return api<import('@/types/catalogo').Fabricante>('/api/v1/catalogo/fabricantes', {
     method: 'POST',
@@ -390,6 +397,13 @@ export async function fetchFornecedores() {
 export async function cadastrarFornecedor(input: import('@/types/compra').FornecedorInput) {
   return api<import('@/types/compra').Fornecedor>('/api/v1/fornecedores', {
     method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function atualizarFornecedor(id: string, input: import('@/types/compra').FornecedorInput) {
+  return api<import('@/types/compra').Fornecedor>(`/api/v1/fornecedores/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(input),
   })
 }

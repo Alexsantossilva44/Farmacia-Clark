@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   atualizarMedicamento,
   cadastrarMedicamento,
@@ -37,6 +37,7 @@ import {
   validarObrigatorio,
   validarSelecao,
 } from '@/lib/validacao-formulario'
+import { DELAY_ERRO_MS } from '@/hooks/useErrosCampo'
 
 /**
  * Cadastro e edição de medicamentos no catálogo.
@@ -288,22 +289,25 @@ export function MedicamentosCadastroTab() {
               key={m.id}
               type="button"
               onClick={() => startEdit(m)}
-              className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors
+              className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors flex items-start gap-2
                 ${editId === m.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-sm">{m.nomeComercial}</p>
-                  <p className="text-xs text-[#8b9cb3] mt-0.5">{m.nomeGenerico}</p>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-sm">{m.nomeComercial}</p>
+                    <p className="text-xs text-[#8b9cb3] mt-0.5">{m.nomeGenerico}</p>
+                  </div>
+                  <Badge variant={nivelControleVariant(m.nivelControle)} className="shrink-0">
+                    {nivelControleLabel(m.nivelControle)}
+                  </Badge>
                 </div>
-                <Badge variant={nivelControleVariant(m.nivelControle)} className="shrink-0">
-                  {nivelControleLabel(m.nivelControle)}
-                </Badge>
+                <p className="text-xs text-[#8b9cb3] mt-1">
+                  {m.fabricante?.nomeFantasia ?? m.fabricante?.razaoSocial ?? 'Sem fabricante'}
+                </p>
+                <p className="text-xs font-mono text-mint/70 mt-0.5">{formatCurrency(m.precoMaximoConsumidor)}</p>
               </div>
-              <p className="text-xs text-[#8b9cb3] mt-1">
-                {m.fabricante?.nomeFantasia ?? m.fabricante?.razaoSocial ?? 'Sem fabricante'}
-              </p>
-              <p className="text-xs font-mono text-mint/70 mt-0.5">{formatCurrency(m.precoMaximoConsumidor)}</p>
+              <Pencil className="size-3.5 text-red-400 shrink-0 mt-1" />
             </button>
           ))}
         </div>
@@ -330,6 +334,11 @@ export function MedicamentosCadastroTab() {
             onChange={(e) => {
               const v = e.target.value
               if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              if (v.length > 80) {
+                setForm({ ...form, nomeComercial: v.slice(0, 80) })
+                setErroTemporario('nomeComercial', 'Limite: Até 80 caracteres.', DELAY_ERRO_MS)
+                return
+              }
               setForm({ ...form, nomeComercial: v })
               if (fieldErrors.nomeComercial && v.trim()) setErroTemporario('nomeComercial', undefined)
             }}
@@ -344,8 +353,15 @@ export function MedicamentosCadastroTab() {
             onChange={(e) => {
               const v = e.target.value
               if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+              if (v.length > 80) {
+                setForm({ ...form, nomeGenerico: v.slice(0, 80) })
+                setErroTemporario('nomeGenerico', 'Limite: Até 80 caracteres.', DELAY_ERRO_MS)
+                return
+              }
               setForm({ ...form, nomeGenerico: v })
+              if (fieldErrors.nomeGenerico) setErroTemporario('nomeGenerico', undefined)
             }}
+            error={fieldErrors.nomeGenerico}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input

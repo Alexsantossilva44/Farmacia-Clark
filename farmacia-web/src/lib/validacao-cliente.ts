@@ -1,4 +1,5 @@
-import { onlyDigits } from '@/lib/cadastro-options'
+﻿import { onlyDigits } from '@/lib/cadastro-options'
+import { MSG_OBRIGATORIO } from '@/lib/validacao-formulario'
 
 /**
  * Validações do cadastro de clientes (nome, CPF, contato, endereço, data de nascimento).
@@ -24,7 +25,7 @@ export function sanitizeNomePessoa(value: string): string {
 
 export function validarNomePessoa(nome: string): string | null {
   const normalizado = sanitizeNomePessoa(nome).trim()
-  if (!normalizado) return 'Nome completo é obrigatório.'
+  if (!normalizado) return MSG_OBRIGATORIO
   // Defesa extra: slice já limita, mas valida antes do submit/API.
   if (normalizado.length > NOME_PESSOA_MAX) {
     return `Nome completo deve ter no máximo ${NOME_PESSOA_MAX} caracteres.`
@@ -132,7 +133,7 @@ export function validarDataNascimentoIso(iso: string): string | null {
 
 export function validarTelefone(telefone: string, obrigatorio = false): string | null {
   if (!telefone.trim()) {
-    return obrigatorio ? 'Telefone é obrigatório.' : null
+    return obrigatorio ? MSG_OBRIGATORIO : null
   }
   const digits = onlyDigits(telefone)
   if (digits.length < 10 || digits.length > 11) {
@@ -151,9 +152,13 @@ export function formatTelefoneDisplay(value: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-/** Remove qualquer espaço (incl. NBSP e unicode) — e-mail não aceita espaços. */
+/**
+ * Allowlist de e-mail: só letras, dígitos e os especiais válidos (. _ % + - @).
+ * Primeiro caractere deve ser letra ou dígito — bloqueia @#!$ no início.
+ */
 export function sanitizeEmailInput(value: string): string {
-  return value.replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]+/g, '')
+  const allowed = value.replace(/[^a-zA-Z0-9._%+\-@]/g, '')
+  return allowed.replace(/^[^a-zA-Z0-9]+/, '')
 }
 
 /**
@@ -178,7 +183,7 @@ function emailFormatoUniversalValido(email: string): boolean {
 
 export function validarEmail(email: string, obrigatorio = false): string | null {
   if (!email.trim()) {
-    return obrigatorio ? 'E-mail é obrigatório.' : null
+    return obrigatorio ? MSG_OBRIGATORIO : null
   }
   if (/\s/.test(email)) {
     return 'E-mail não pode conter espaços.'
@@ -186,13 +191,13 @@ export function validarEmail(email: string, obrigatorio = false): string | null 
   const normalizado = email.trim().toLowerCase()
   // Alteração: validação estrita de formato universal (TLD alfabético; domínio sem lixo após .com).
   if (!emailFormatoUniversalValido(normalizado)) {
-    return 'E-mail inválido.'
+    return 'E-mail inválido. Exemplo: nome@dominio.com'
   }
   return null
 }
 
 export function validarSexo(sexo: string): string | null {
-  if (!sexo?.trim()) return 'Sexo é obrigatório.'
+  if (!sexo?.trim()) return MSG_OBRIGATORIO
   return null
 }
 
@@ -221,18 +226,18 @@ export function validarCpf(cpf: string): string | null {
 }
 
 export function validarLogradouro(logradouro: string): string | null {
-  if (!logradouro.trim()) return 'Logradouro é obrigatório.'
+  if (!logradouro.trim()) return MSG_OBRIGATORIO
   return null
 }
 
 export function validarBairro(bairro: string): string | null {
-  if (!bairro.trim()) return 'Bairro é obrigatório.'
+  if (!bairro.trim()) return MSG_OBRIGATORIO
   return null
 }
 
 export function validarCep(cep: string): string | null {
   const digits = onlyDigits(cep)
-  if (!digits) return 'CEP é obrigatório.'
+  if (!digits) return MSG_OBRIGATORIO
   if (digits.length !== 8) return 'CEP deve conter 8 dígitos.'
   return null
 }

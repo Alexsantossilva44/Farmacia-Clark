@@ -34,10 +34,10 @@ public class FabricanteJpaEntity {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
-    @Column(name = "razao_social", nullable = false, length = 150)
+    @Column(name = "razao_social", nullable = false, length = 80)
     private String razaoSocial;
 
-    @Column(name = "nome_fantasia", length = 150)
+    @Column(name = "nome_fantasia", length = 80)
     private String nomeFantasia;
 
     @Column(name = "cnpj", length = 14)

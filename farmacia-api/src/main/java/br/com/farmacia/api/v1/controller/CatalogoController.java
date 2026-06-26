@@ -85,6 +85,38 @@ public class CatalogoController {
         return toFabricanteModel(fabricanteRepository.save(entity));
     }
 
+    @PutMapping("/fabricantes/{id}")
+    @PreAuthorize("hasAnyRole('GERENTE', 'ADMIN')")
+    @Operation(summary = "Atualizar fabricante")
+    public FabricanteModel atualizarFabricante(@PathVariable UUID id, @RequestBody FabricanteInput input) {
+        var entity = fabricanteRepository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Fabricante não encontrado"));
+
+        if (input.getRazaoSocial() == null || input.getRazaoSocial().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Lembre-se: Campo obrigatório.");
+        }
+
+        String cnpj = normalizarCnpj(input.getCnpj());
+        if (cnpj.length() != 14) {
+            throw new CnpjInvalidoException();
+        }
+        if (!cnpj.equals(entity.getCnpj()) && fabricanteRepository.existsByCnpj(cnpj)) {
+            throw new CnpjDuplicadoException(cnpj);
+        }
+        String razaoSocial = input.getRazaoSocial().trim();
+        if (!razaoSocial.equalsIgnoreCase(entity.getRazaoSocial())
+                && fabricanteRepository.countByRazaoSocialAtivo(razaoSocial) > 0) {
+            throw new FabricanteDuplicadoException(razaoSocial);
+        }
+
+        entity.setRazaoSocial(razaoSocial);
+        entity.setNomeFantasia(input.getNomeFantasia() != null && !input.getNomeFantasia().isBlank()
+            ? input.getNomeFantasia().trim() : null);
+        entity.setCnpj(cnpj);
+
+        return toFabricanteModel(fabricanteRepository.save(entity));
+    }
+
     /** Remove formatação da máscara (00.000.000/0000-00) enviada pelo front. */
     private static String normalizarCnpj(String cnpj) {
         return cnpj != null ? cnpj.replaceAll("\\D", "") : "";
@@ -121,7 +153,7 @@ public class CatalogoController {
     @Operation(summary = "Atualizar categoria")
     public CategoriaModel atualizarCategoria(@PathVariable UUID id, @RequestBody CategoriaInput input) {
         if (input.getNome() == null || input.getNome().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Nome da categoria é obrigatório");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Lembre-se: Campo obrigatório.");
         }
         var entity = categoriaRepository.findById(id)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoria não encontrada"));

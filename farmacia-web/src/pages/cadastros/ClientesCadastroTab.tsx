@@ -14,6 +14,7 @@ import { resolverUfPorMunicipio, validarCidadeObrigatoria, validarUfEndereco, mu
 import {
   dataBrParaIso,
   dataIsoParaBr,
+  NOME_PESSOA_MAX,
   sanitizeNomePessoa,
   validarCpf,
   validarDataNascimentoBr,
@@ -1039,8 +1040,23 @@ export function ClientesCadastroTab() {
                 readOnly={readOnlyAntiAutofill}
                 value={form.nome}
                 onChange={(e) => {
-                  // sanitizeNomePessoa já limita a 100 chars e remove caracteres inválidos.
-                  const nome = sanitizeNomePessoa(e.target.value)
+                  const semCorte = e.target.value
+                    .replace(/[^\p{L}\s]/gu, '')
+                    .replace(/^\s+/, '')
+                    .replace(/\s{2,}/g, ' ')
+                  if (semCorte.length > NOME_PESSOA_MAX) {
+                    const nome = semCorte.slice(0, NOME_PESSOA_MAX)
+                    setForm({ ...form, nome })
+                    marcarCampoTocado('nome')
+                    setFieldErrors((prev) => ({ ...prev, nome: `Limite: Até ${NOME_PESSOA_MAX} caracteres.` }))
+                    if (nomeResetTimerRef.current) clearTimeout(nomeResetTimerRef.current)
+                    nomeResetTimerRef.current = setTimeout(() => {
+                      nomeResetTimerRef.current = null
+                      setFieldErrors((prev) => ({ ...prev, nome: undefined }))
+                    }, CPF_RESET_DELAY_MS)
+                    return
+                  }
+                  const nome = semCorte
                   setForm({ ...form, nome })
                   if (deveValidarCampo('nome')) {
                     setFieldErrors((prev) => ({
@@ -1070,7 +1086,6 @@ export function ClientesCadastroTab() {
                 }}
                 error={erroCampo('nome')}
                 placeholder="Ex.: Jorge Macedo"
-                maxLength={100} // alinhado a clientes.nome VARCHAR(100) e @Size(max=100) na API
                 className={inputCompact}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 min-w-0">

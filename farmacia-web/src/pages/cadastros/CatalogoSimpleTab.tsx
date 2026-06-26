@@ -5,6 +5,7 @@ import { useErrosCampo, MSG_OBRIGATORIO, obrigatorio, calcularProgressoCampos, D
 import {
   ApiError,
   atualizarCategoria,
+  atualizarFabricante,
   atualizarPrescritor,
   cadastrarCategoria,
   cadastrarFabricante,
@@ -112,6 +113,27 @@ export function CatalogoSimpleTab({ kind }: Props) {
     limparErros()
   }
 
+  function startEditFabricante(f: Fabricante) {
+    setEditId(f.id)
+    setRazaoSocial(f.razaoSocial)
+    setNomeFantasia(f.nomeFantasia ?? '')
+    setCnpj(formatCnpjDisplay(f.cnpj ?? ''))
+    clearError()
+    setSuccess('')
+    limparErros()
+    setTimeout(() => formRef.current?.querySelector<HTMLElement>('input')?.focus(), 0)
+  }
+
+  function startNewFabricante() {
+    setEditId(null)
+    setRazaoSocial('')
+    setNomeFantasia('')
+    setCnpj('')
+    clearError()
+    setSuccess('')
+    limparErros()
+  }
+
   function startEditCategoria(c: Categoria) {
     setEditId(c.id)
     setNomeCategoria(c.nome)
@@ -155,11 +177,13 @@ export function CatalogoSimpleTab({ kind }: Props) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (kind === 'fabricantes') {
-        return cadastrarFabricante({
+        const payload = {
           razaoSocial: razaoSocial.trim(),
           nomeFantasia: nomeFantasia.trim() || undefined,
-          cnpj: onlyDigits(cnpj), // CNPJ obrigatório — 14 dígitos; coluna fabricantes.cnpj NOT NULL
-        })
+          cnpj: onlyDigits(cnpj),
+        }
+        if (editId) return atualizarFabricante(editId, payload)
+        return cadastrarFabricante(payload)
       }
       if (kind === 'categorias') {
         const categoriaPayload = { nome: nomeCategoria.trim(), descricao: descricao.trim() }
@@ -180,7 +204,8 @@ export function CatalogoSimpleTab({ kind }: Props) {
       clearError()
       limparErros()
       if (kind === 'fabricantes') {
-        setSuccess('Cadastro realizado com sucesso.')
+        setSuccess(editId ? 'Fabricante atualizado.' : 'Cadastro realizado com sucesso.')
+        setEditId(null)
         setRazaoSocial('')
         setNomeFantasia('')
         setCnpj('')
@@ -309,7 +334,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
   function checarRazaoSocialDuplicada(): boolean {
     const lista = qc.getQueryData<Fabricante[]>(['fabricantes']) ?? []
     return lista.some(
-      f => f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
+      f => f.id !== editId && f.razaoSocial.trim().toLowerCase() === razaoSocial.trim().toLowerCase()
     )
   }
 
@@ -412,13 +437,22 @@ export function CatalogoSimpleTab({ kind }: Props) {
           {listLoading && <p className="p-4 text-sm text-[#8b9cb3]">Carregando…</p>}
           {kind === 'fabricantes' &&
             fabricantesOrdenados.map((f) => (
-              <div key={f.id} className="px-4 py-3">
-                <p className="font-medium text-sm">{f.nomeFantasia || f.razaoSocial}</p>
-                <p className="text-xs text-[#8b9cb3]">
-                  {f.razaoSocial}
-                  {f.cnpj ? ` · CNPJ ${formatCnpjDisplay(f.cnpj)}` : ''}
-                </p>
-              </div>
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => startEditFabricante(f)}
+                className={`w-full text-left px-4 py-3 hover:bg-mint/5 transition-colors flex items-center justify-between gap-2
+                  ${editId === f.id ? 'bg-mint/10 border-l-2 border-mint' : ''}`}
+              >
+                <div>
+                  <p className="font-medium text-sm">{f.nomeFantasia || f.razaoSocial}</p>
+                  <p className="text-xs text-[#8b9cb3]">
+                    {f.razaoSocial}
+                    {f.cnpj ? ` · CNPJ ${formatCnpjDisplay(f.cnpj)}` : ''}
+                  </p>
+                </div>
+                <Pencil className="size-3.5 text-red-400 shrink-0" />
+              </button>
             ))}
           {kind === 'categorias' &&
             categoriasOrdenadas.map((c) => (
@@ -461,7 +495,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
       <Card className="p-5 sm:p-6 shrink-0 self-start xl:self-stretch xl:overflow-visible">
         <div ref={formRef}>
         <h2 className="font-semibold mb-4">
-          {kind === 'fabricantes' && 'Novo Fabricante'}
+          {kind === 'fabricantes' && (editId ? 'Editar Fabricante' : 'Novo Fabricante')}
           {kind === 'categorias' && (editId ? 'Editar Categoria' : 'Nova Categoria')}
           {kind === 'prescritores' && (editId ? 'Editar Prescritor' : 'Novo Prescritor')}
         </h2>
@@ -477,6 +511,11 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   const v = e.target.value
                   if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+                  if (v.length > 80) {
+                    setRazaoSocial(v.slice(0, 80))
+                    setErroTemporario('razaoSocial', 'Limite: Até 80 caracteres.', DELAY_ERRO_MS)
+                    return
+                  }
                   setRazaoSocial(v)
                   if (fieldErrors.razaoSocial && v.trim()) setErroTemporario('razaoSocial', undefined)
                 }}
@@ -499,8 +538,15 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 onChange={(e) => {
                   const v = e.target.value
                   if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+                  if (v.length > 80) {
+                    setNomeFantasia(v.slice(0, 80))
+                    setErroTemporario('nomeFantasia', 'Limite: Até 80 caracteres.', DELAY_ERRO_MS)
+                    return
+                  }
                   setNomeFantasia(v)
+                  if (fieldErrors.nomeFantasia) setErroTemporario('nomeFantasia', undefined)
                 }}
+                error={fieldErrors.nomeFantasia}
               />
               <Input
                 label="CNPJ *"
@@ -642,7 +688,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
           )}
         </div>
 
-        {(kind === 'prescritores' || kind === 'categorias') && editId ? (
+        {editId ? (
           <div className="mt-6 flex flex-wrap gap-2">
             <Button
               loading={saveMutation.isPending}
@@ -651,22 +697,24 @@ export function CatalogoSimpleTab({ kind }: Props) {
             >
               Salvar alterações
             </Button>
-            <Button
-              variant="danger"
-              loading={deleteMutation.isPending}
-              disabled={saveMutation.isPending || deleteMutation.isPending}
-              onClick={() => {
-                const msg = kind === 'categorias' ? 'Inativar esta categoria?' : 'Inativar este prescritor?'
-                if (window.confirm(msg)) deleteMutation.mutate(editId)
-              }}
-            >
-              <Trash2 className="size-4" />
-              Inativar
-            </Button>
+            {(kind === 'categorias' || kind === 'prescritores') && (
+              <Button
+                variant="danger"
+                loading={deleteMutation.isPending}
+                disabled={saveMutation.isPending || deleteMutation.isPending}
+                onClick={() => {
+                  const msg = kind === 'categorias' ? 'Inativar esta categoria?' : 'Inativar este prescritor?'
+                  if (window.confirm(msg)) deleteMutation.mutate(editId)
+                }}
+              >
+                <Trash2 className="size-4" />
+                Inativar
+              </Button>
+            )}
             <Button
               variant="ghost"
               disabled={saveMutation.isPending || deleteMutation.isPending}
-              onClick={kind === 'categorias' ? startNewCategoria : startNew}
+              onClick={kind === 'categorias' ? startNewCategoria : kind === 'fabricantes' ? startNewFabricante : startNew}
             >
               Cancelar
             </Button>

@@ -1,4 +1,5 @@
 import cidadesUf from './cidades-uf-br.json'
+import { MSG_OBRIGATORIO } from '@/lib/validacao-formulario'
 
 const MAPA_CIDADES_UF = cidadesUf as Record<string, string>
 
@@ -118,13 +119,13 @@ export function resolverUfPorCidade(cidade: string): string | null {
 
 /** UF passou a ser obrigatória no endereço do cliente (regra de negócio + submit). */
 export function validarUfEndereco(uf: string): string | null {
-  if (!uf?.trim()) return 'UF é obrigatória.'
+  if (!uf?.trim()) return MSG_OBRIGATORIO
   return null
 }
 
 /** Exige município preenchido e coerente com a UF (lista IBGE), não só validação opcional ao digitar. */
 export function validarCidadeObrigatoria(cidade: string, uf: string): string | null {
-  if (!cidade?.trim()) return 'Cidade é obrigatória.'
+  if (!cidade?.trim()) return MSG_OBRIGATORIO
   const ufErr = validarUfEndereco(uf)
   if (ufErr) return 'Selecione a UF antes da cidade.'
   return validarCidadeEndereco(cidade, uf)

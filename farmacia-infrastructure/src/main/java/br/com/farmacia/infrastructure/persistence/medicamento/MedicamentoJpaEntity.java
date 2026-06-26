@@ -42,10 +42,10 @@ public class MedicamentoJpaEntity {
     @Column(name = "codigo_anvisa", length = 15, unique = true)
     private String codigoAnvisa;
 
-    @Column(name = "nome_comercial", nullable = false, length = 200)
+    @Column(name = "nome_comercial", nullable = false, length = 80)
     private String nomeComercial;
 
-    @Column(name = "nome_generico", length = 200)
+    @Column(name = "nome_generico", length = 80)
     private String nomeGenerico;
 
     @Enumerated(EnumType.STRING)

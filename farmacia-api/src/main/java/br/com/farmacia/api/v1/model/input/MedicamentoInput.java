@@ -29,10 +29,10 @@ public class MedicamentoInput {
     private String codigoAnvisa;
 
     @NotBlank(message = "Nome comercial é obrigatório")
-    @Size(max = 200, message = "Nome comercial deve ter no máximo 200 caracteres")
+    @Size(max = 80, message = "Nome comercial deve ter no máximo 80 caracteres")
     private String nomeComercial;
 
-    @Size(max = 200)
+    @Size(max = 80, message = "Nome genérico deve ter no máximo 80 caracteres")
     private String nomeGenerico;
 
     @NotNull(message = "Tipo do medicamento é obrigatório")
