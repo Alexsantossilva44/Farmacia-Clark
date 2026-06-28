@@ -1,7 +1,7 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 
 const apiBase = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:8080'
-const ADMIN = { email: 'admin@farmaciaclark.com', senha: 'admin123' }
+const ADMIN = { email: 'admin@farmacia.com', senha: 'admin123' }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 

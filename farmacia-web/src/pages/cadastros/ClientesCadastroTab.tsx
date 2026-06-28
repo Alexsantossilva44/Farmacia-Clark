@@ -29,7 +29,7 @@ import {
   sanitizeEmailInput,
   formatTelefoneDisplay,
 } from '@/lib/validacao-cliente'
-import { focarPrimeiroErro } from '@/lib/validacao-formulario'
+import { focarPrimeiroErro, MSG_OBRIGATORIO } from '@/lib/validacao-formulario'
 
 /**
  * Cadastro e edição de clientes (aba Clientes em /cadastros).
@@ -720,7 +720,7 @@ export function ClientesCadastroTab() {
 
   function erroDataNascimento(): string | null {
     if (!form.dataNascimento?.trim()) {
-      return 'Lembre-se: Campo Obrigatório.'
+      return MSG_OBRIGATORIO
     }
     return validarDataNascimentoBr(form.dataNascimento)
   }
@@ -1069,7 +1069,7 @@ export function ClientesCadastroTab() {
                   if (focoDirecionado()) return
                   if (!sanitizeNomePessoa(form.nome).trim()) {
                     marcarCampoTocado('nome')
-                    setFieldErrors((prev) => ({ ...prev, nome: 'Lembre-se: Campo Obrigatório.' }))
+                    setFieldErrors((prev) => ({ ...prev, nome: MSG_OBRIGATORIO }))
                     if (nomeResetTimerRef.current) clearTimeout(nomeResetTimerRef.current)
                     nomeResetTimerRef.current = setTimeout(() => {
                       nomeResetTimerRef.current = null
@@ -1106,7 +1106,7 @@ export function ClientesCadastroTab() {
                     }
                     if (e.key === 'Enter' && !isEdicao && onlyDigits(form.cpf).length === 0) {
                       marcarCampoTocado('cpf')
-                      setFieldErrors((prev) => ({ ...prev, cpf: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, cpf: MSG_OBRIGATORIO }))
                       if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
                       cpfResetTimerRef.current = setTimeout(() => {
                         cpfResetTimerRef.current = null
@@ -1155,7 +1155,7 @@ export function ClientesCadastroTab() {
                     if (onlyDigits(form.cpf).length === 11) return
                     if (onlyDigits(form.cpf).length === 0) {
                       marcarCampoTocado('cpf')
-                      setFieldErrors((prev) => ({ ...prev, cpf: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, cpf: MSG_OBRIGATORIO }))
                       if (cpfResetTimerRef.current) clearTimeout(cpfResetTimerRef.current)
                       cpfResetTimerRef.current = setTimeout(() => {
                         cpfResetTimerRef.current = null
@@ -1200,7 +1200,7 @@ export function ClientesCadastroTab() {
                     if (e.key !== 'Enter') return
                     if (!form.dataNascimento?.trim()) {
                       marcarCampoTocado('dataNascimento')
-                      setFieldErrors((prev) => ({ ...prev, dataNascimento: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: MSG_OBRIGATORIO }))
                       if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
                       dataNascimentoResetTimerRef.current = setTimeout(() => {
                         dataNascimentoResetTimerRef.current = null
@@ -1221,7 +1221,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado() || proximosCamposBloqueados) return
                     if (!form.dataNascimento?.trim()) {
                       marcarCampoTocado('dataNascimento')
-                      setFieldErrors((prev) => ({ ...prev, dataNascimento: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, dataNascimento: MSG_OBRIGATORIO }))
                       if (dataNascimentoResetTimerRef.current) clearTimeout(dataNascimentoResetTimerRef.current)
                       dataNascimentoResetTimerRef.current = setTimeout(() => {
                         dataNascimentoResetTimerRef.current = null
@@ -1256,7 +1256,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado() || proximosCamposBloqueados) return
                     if (!(form.sexo ?? '').trim()) {
                       marcarCampoTocado('sexo')
-                      setFieldErrors((prev) => ({ ...prev, sexo: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, sexo: MSG_OBRIGATORIO }))
                       if (sexoResetTimerRef.current) clearTimeout(sexoResetTimerRef.current)
                       sexoResetTimerRef.current = setTimeout(() => {
                         sexoResetTimerRef.current = null
@@ -1305,7 +1305,7 @@ export function ClientesCadastroTab() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !onlyDigits(form.telefone ?? '').length) {
                     marcarCampoTocado('telefone')
-                    setFieldErrors((prev) => ({ ...prev, telefone: 'Lembre-se: Campo Obrigatório.' }))
+                    setFieldErrors((prev) => ({ ...prev, telefone: MSG_OBRIGATORIO }))
                     if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
                     telefoneResetTimerRef.current = setTimeout(() => {
                       telefoneResetTimerRef.current = null
@@ -1318,7 +1318,7 @@ export function ClientesCadastroTab() {
                   if (focoDirecionado()) return
                   if (!onlyDigits(form.telefone ?? '').length) {
                     marcarCampoTocado('telefone')
-                    setFieldErrors((prev) => ({ ...prev, telefone: 'Lembre-se: Campo Obrigatório.' }))
+                    setFieldErrors((prev) => ({ ...prev, telefone: MSG_OBRIGATORIO }))
                     if (telefoneResetTimerRef.current) clearTimeout(telefoneResetTimerRef.current)
                     telefoneResetTimerRef.current = setTimeout(() => {
                       telefoneResetTimerRef.current = null
@@ -1350,7 +1350,7 @@ export function ClientesCadastroTab() {
                     const emailValue = sanitizeEmailInput(form.email ?? '')
                     if (!emailValue.trim()) {
                       marcarCampoTocado('email')
-                      setFieldErrors((prev) => ({ ...prev, email: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, email: MSG_OBRIGATORIO }))
                       if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
                       emailResetTimerRef.current = setTimeout(() => {
                         emailResetTimerRef.current = null
@@ -1403,7 +1403,7 @@ export function ClientesCadastroTab() {
                   const emailValue = sanitizeEmailInput(form.email ?? '')
                   if (!emailValue.trim()) {
                     marcarCampoTocado('email')
-                    setFieldErrors((prev) => ({ ...prev, email: 'Lembre-se: Campo Obrigatório.' }))
+                    setFieldErrors((prev) => ({ ...prev, email: MSG_OBRIGATORIO }))
                     if (emailResetTimerRef.current) clearTimeout(emailResetTimerRef.current)
                     emailResetTimerRef.current = setTimeout(() => {
                       emailResetTimerRef.current = null
@@ -1446,7 +1446,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado()) return
                     if (!(form.endereco?.logradouro ?? '').trim()) {
                       marcarCampoTocado('logradouro')
-                      setFieldErrors((prev) => ({ ...prev, logradouro: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, logradouro: MSG_OBRIGATORIO }))
                       if (logradouroResetTimerRef.current) clearTimeout(logradouroResetTimerRef.current)
                       logradouroResetTimerRef.current = setTimeout(() => {
                         logradouroResetTimerRef.current = null
@@ -1544,7 +1544,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado()) return
                     if (!(form.endereco?.bairro ?? '').trim()) {
                       marcarCampoTocado('bairro')
-                      setFieldErrors((prev) => ({ ...prev, bairro: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, bairro: MSG_OBRIGATORIO }))
                       if (bairroResetTimerRef.current) clearTimeout(bairroResetTimerRef.current)
                       bairroResetTimerRef.current = setTimeout(() => {
                         bairroResetTimerRef.current = null
@@ -1582,7 +1582,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado()) return
                     if (!onlyDigits(form.endereco?.cep ?? '')) {
                       marcarCampoTocado('cep')
-                      setFieldErrors((prev) => ({ ...prev, cep: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, cep: MSG_OBRIGATORIO }))
                       if (cepResetTimerRef.current) clearTimeout(cepResetTimerRef.current)
                       cepResetTimerRef.current = setTimeout(() => {
                         cepResetTimerRef.current = null
@@ -1633,7 +1633,7 @@ export function ClientesCadastroTab() {
                     if (focoDirecionado()) return
                     if (!(form.endereco?.uf ?? '').trim()) {
                       marcarCampoTocado('uf')
-                      setFieldErrors((prev) => ({ ...prev, uf: 'Lembre-se: Campo Obrigatório.' }))
+                      setFieldErrors((prev) => ({ ...prev, uf: MSG_OBRIGATORIO }))
                       if (ufResetTimerRef.current) clearTimeout(ufResetTimerRef.current)
                       ufResetTimerRef.current = setTimeout(() => {
                         ufResetTimerRef.current = null

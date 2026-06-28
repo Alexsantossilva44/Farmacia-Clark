@@ -70,9 +70,9 @@ test.describe('MD-02 — Campo Nome comercial', () => {
     page,
   }) => {
     const campo = page.getByLabel('Nome comercial *')
-    const texto81 = 'Medicamento Teste Playwright Nome Comercial Longo Demais Para Caber No Campo X'
+    const texto81 = 'A'.repeat(81)
 
-    await campo.fill(texto81.slice(0, 81))
+    await campo.fill(texto81)
 
     await expect(page.getByText('Limite: Até 80 caracteres.')).toBeVisible({ timeout: 5_000 })
     const valor = await campo.inputValue()

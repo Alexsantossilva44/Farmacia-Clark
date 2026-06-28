@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Search } from 'lucide-react'
 
@@ -35,6 +35,7 @@ export function Select({
   onBlur,
   searchable = false,
 }: SelectProps) {
+  const selectId = useId()
   const [open, setOpen] = useState(false)
   const [menuStyle, setMenuStyle] = useState({ top: 0, left: 0, width: 0 })
   const [search, setSearch] = useState('')
@@ -169,8 +170,24 @@ export function Select({
   return (
     <div className="min-w-0 space-y-1.5" ref={rootRef}>
       {label && (
-        <label className="block text-xs sm:text-sm font-medium text-[#a8bbd0]">{label}</label>
+        <label htmlFor={selectId} className="block text-xs sm:text-sm font-medium text-[#a8bbd0]">{label}</label>
       )}
+      {/* Select nativo oculto — mantém acessibilidade e permite testes E2E com getByLabel/selectOption */}
+      <select
+        id={selectId}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        disabled={disabled || loading}
+        aria-hidden="false"
+        tabIndex={-1}
+        style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1 }}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
       <button
         ref={triggerRef}
         type="button"
