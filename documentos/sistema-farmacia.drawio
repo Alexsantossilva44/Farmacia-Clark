@@ -1,0 +1,219 @@
+<mxfile host="app.diagrams.net" modified="2026-06-28" agent="Claude" version="21.7.5" type="github">
+  <diagram id="farmacia-sistema" name="Sistema Farmácia — Arquitetura Completa">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1350" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TÍTULO -->
+        <mxCell id="titulo" value="Sistema Farmácia — Arquitetura em Camadas" style="text;html=1;fontSize=20;fontStyle=1;align=center;fillColor=none;strokeColor=none;fontColor=#1a1a2e;" vertex="1" parent="1">
+          <mxGeometry x="40" y="5" width="2200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 1 — FRONTEND -->
+        <mxCell id="L1" value="🖥️  FRONTEND — React + TypeScript + Vite  (farmacia-web)" style="swimlane;startSize=32;fontStyle=1;fontSize=13;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#003380;swimlaneLine=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="45" width="2200" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="F1" value="LoginPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="20" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F2" value="DashboardPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="180" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F3" value="CadastrosPage&#xa;Clientes | Fornecedores&#xa;Medicamentos | Catálogo" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="L1">
+          <mxGeometry x="340" y="45" width="175" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="F4" value="ComprasPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="535" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F5" value="EstoquePage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="695" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F6" value="MedicamentosPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="855" y="55" width="145" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F7" value="ReceitasPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="1020" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F8" value="VendasPage" style="rounded=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontStyle=1;fontSize=11;" vertex="1" parent="L1">
+          <mxGeometry x="1180" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="F9" value="ComingSoonPage" style="rounded=1;fillColor=#f5f5f5;strokeColor=#6c8ebf;fontSize=10;fontStyle=2;" vertex="1" parent="L1">
+          <mxGeometry x="1340" y="55" width="140" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Seta L1 -> L2 -->
+        <mxCell id="AR1" value="HTTP REST (JSON)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6c8ebf;strokeWidth=2.5;endArrow=block;endFill=1;fontSize=11;fontStyle=1;fontColor=#003380;" edge="1" parent="1" source="L1" target="L2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 2 — API REST -->
+        <mxCell id="L2" value="⚙️  API REST — Spring Boot  (farmacia-api)" style="swimlane;startSize=32;fontStyle=1;fontSize=13;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#1a5200;swimlaneLine=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="275" width="2200" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="A1" value="AuthController&#xa;POST /auth/login&#xa;POST /auth/refresh" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="20" y="45" width="170" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="A2" value="CaixaController&#xa;GET/POST /caixa" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="210" y="50" width="155" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A3" value="CatalogoController&#xa;GET /catalogo" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="385" y="50" width="155" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A4" value="ClienteController&#xa;GET/POST/PUT /clientes" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="560" y="50" width="165" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A5" value="CompraController&#xa;GET/POST /compras&#xa;/pedidos /notas-fiscais" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="745" y="45" width="165" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="A6" value="EstoqueController&#xa;GET/POST /estoque&#xa;/movimentacoes" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="930" y="45" width="165" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="A7" value="FornecedorController&#xa;GET/POST /fornecedores" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="1115" y="50" width="165" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A8" value="MedicamentoController&#xa;GET/POST/PUT&#xa;/medicamentos" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="1300" y="45" width="165" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="A9" value="PdvController&#xa;POST /pdv/venda" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="1485" y="50" width="155" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A10" value="ReceitaController&#xa;GET/POST /receitas" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="1660" y="50" width="155" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="A11" value="VendaController&#xa;GET/POST /vendas&#xa;DELETE /vendas/{id}" style="rounded=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=10;" vertex="1" parent="L2">
+          <mxGeometry x="1835" y="45" width="155" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Seta L2 -> L3 -->
+        <mxCell id="AR2" value="Chama Use Cases" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#82b366;strokeWidth=2.5;endArrow=block;endFill=1;fontSize=11;fontStyle=1;fontColor=#1a5200;" edge="1" parent="1" source="L2" target="L3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 3 — APPLICATION -->
+        <mxCell id="L3" value="📋  APPLICATION — Casos de Uso  (farmacia-application)" style="swimlane;startSize=32;fontStyle=1;fontSize=13;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#7a5e00;swimlaneLine=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="505" width="2200" height="215" as="geometry" />
+        </mxCell>
+        <mxCell id="UC1" value="Vendas&#xa;─────────&#xa;RealizarVenda&#xa;CancelarVenda&#xa;ConsultarVenda" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="20" y="45" width="185" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="UC2" value="Compras&#xa;─────────&#xa;CriarPedidoCompra&#xa;ConfirmarPedido&#xa;RegistrarNotaFiscal&#xa;ConferirNotaComPedido&#xa;ConsultarPedido" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="225" y="45" width="195" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="UC3" value="Estoque&#xa;─────────&#xa;ListarEstoque&#xa;ConsultarEstoque&#xa;RegistrarEntrada&#xa;RegistrarAjusteSaldo&#xa;ListarMovimentacoes" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="440" y="45" width="195" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="UC4" value="Clientes&#xa;─────────&#xa;CadastrarCliente&#xa;ConsultarCliente&#xa;AtualizarCliente&#xa;ListarClientes" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="655" y="45" width="185" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="UC5" value="Medicamentos&#xa;─────────&#xa;CadastrarMedicamento&#xa;ConsultarCatalogo&#xa;AtualizarMedicamento&#xa;ListarMedicamentos" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="860" y="45" width="195" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="UC6" value="Receituário&#xa;─────────&#xa;EmitirReceita&#xa;ValidarReceita&#xa;ConsultarReceita&#xa;RegistroSNGPC" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="1075" y="45" width="185" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="UC7" value="Fornecedores&#xa;─────────&#xa;CadastrarFornecedor&#xa;ListarFornecedores&#xa;AtualizarFornecedor" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="1280" y="45" width="185" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="UC8" value="Financeiro / PDV&#xa;─────────&#xa;AbrirCaixa&#xa;FecharCaixa&#xa;RegistrarPagamento&#xa;ConsultarCaixa" style="rounded=1;fillColor=#fffde7;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="1485" y="45" width="185" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="UC9" value="SNGPC&#xa;─────────&#xa;GerarRelatorio&#xa;TransmitirDados&#xa;ValidarControlado" style="rounded=1;fillColor=#fff3e0;strokeColor=#d6b656;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L3">
+          <mxGeometry x="1690" y="45" width="175" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- Seta L3 -> L4 -->
+        <mxCell id="AR3" value="Manipula Entidades" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#9673a6;strokeWidth=2.5;endArrow=block;endFill=1;fontSize=11;fontStyle=1;fontColor=#4a0066;" edge="1" parent="1" source="L3" target="L4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 4 — DOMAIN -->
+        <mxCell id="L4" value="🏛️  DOMAIN — Entidades e Regras de Negócio  (farmacia-domain)" style="swimlane;startSize=32;fontStyle=1;fontSize=13;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#4a0066;swimlaneLine=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="775" width="2200" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="D1" value="Medicamento&#xa;──────────&#xa;Medicamento&#xa;MedicamentoControlado&#xa;Categoria&#xa;Fabricante&#xa;PrincipioAtivo" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="20" y="45" width="200" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="D2" value="Venda&#xa;──────────&#xa;Venda&#xa;ItemVenda&#xa;Pagamento" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="240" y="45" width="185" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="D3" value="Compra&#xa;──────────&#xa;PedidoCompra&#xa;ItemPedidoCompra&#xa;Fornecedor&#xa;NotaFiscalEntrada&#xa;DivergenciaConferencia" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="445" y="45" width="200" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="D4" value="Estoque&#xa;──────────&#xa;ItemEstoque&#xa;Lote&#xa;MovimentacaoEstoque&#xa;AlertaEstoque" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="665" y="45" width="185" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="D5" value="Cliente&#xa;──────────&#xa;Cliente&#xa;ClienteValidacao" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="870" y="45" width="175" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="D6" value="Receituário&#xa;──────────&#xa;Receita&#xa;Prescritor&#xa;RegistroSNGPC" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="1065" y="45" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="D7" value="Financeiro&#xa;──────────&#xa;Caixa&#xa;PDV" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="1265" y="45" width="160" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="D8" value="Funcionário&#xa;──────────&#xa;Funcionario&#xa;Farmaceutico&#xa;Cargo" style="rounded=1;fillColor=#f3e8ff;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="L4">
+          <mxGeometry x="1445" y="45" width="175" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="D9" value="Shared / Value Objects&#xa;──────────&#xa;CPF, Telefone&#xa;Endereco, Email" style="rounded=1;fillColor=#ede7f6;strokeColor=#9673a6;fontSize=10;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="L4">
+          <mxGeometry x="1640" y="45" width="190" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Seta L4 -> L5 -->
+        <mxCell id="AR4" value="Persistência / Integração" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2.5;endArrow=block;endFill=1;dashed=1;fontSize=11;fontStyle=1;fontColor=#7a0000;" edge="1" parent="1" source="L4" target="L5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CAMADA 5 — INFRASTRUCTURE -->
+        <mxCell id="L5" value="🔧  INFRASTRUCTURE — Persistência, Segurança e Integrações  (farmacia-infrastructure)" style="swimlane;startSize=32;fontStyle=1;fontSize=13;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#7a0000;swimlaneLine=1;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1075" width="2200" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="I1" value="🗄️ PostgreSQL&#xa;Persistência JPA&#xa;Repositories" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="20" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I2" value="🔐 JWT Security&#xa;Autenticação + Roles&#xa;Spring Security" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="225" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I3" value="📨 Messaging&#xa;Eventos internos&#xa;Spring Events" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="430" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I4" value="⏰ Scheduler&#xa;Tarefas agendadas&#xa;Alertas / Rotinas" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="635" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I5" value="💊 SNGPC&#xa;Integração ANVISA&#xa;Medicamentos Controlados" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="840" y="50" width="195" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I6" value="🐳 Docker&#xa;docker-compose.yml&#xa;Containerização" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="1055" y="50" width="175" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I7" value="⚙️ Bootstrap / Config&#xa;Spring Boot App&#xa;application.properties" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="1250" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="I8" value="🔑 Auth Config&#xa;CORS + JWT Filter&#xa;Spring Security Config" style="rounded=1;fillColor=#ffebee;strokeColor=#b85450;fontStyle=1;fontSize=10;" vertex="1" parent="L5">
+          <mxGeometry x="1455" y="50" width="185" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- LEGENDA -->
+        <mxCell id="LEG" value="LEGENDA" style="swimlane;startSize=25;fontStyle=1;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="1700" y="1075" width="540" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="LF" value="Frontend (React)" style="rounded=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="LEG">
+          <mxGeometry x="15" y="35" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="LA" value="API REST (Spring Boot)" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="LEG">
+          <mxGeometry x="175" y="35" width="155" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="LAP" value="Application (Use Cases)" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="LEG">
+          <mxGeometry x="15" y="80" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="LD" value="Domain (Entidades)" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="LEG">
+          <mxGeometry x="175" y="80" width="150" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="LI" value="Infrastructure" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="LEG">
+          <mxGeometry x="345" y="57" width="150" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
