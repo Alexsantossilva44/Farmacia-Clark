@@ -9,22 +9,22 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PrescritorInput {
-    @NotBlank(message = "Nome do prescritor é obrigatório")
+    @NotBlank(message = "Lembre-se: Campo Obrigatório.")
     @Size(max = 150)
     @Pattern(
         regexp = "^[\\p{L}]+(?: [\\p{L}]+)+$",
         message = "Nome deve conter apenas letras e um espaço entre nome e sobrenome")
     private String nome;
 
-    @NotBlank(message = "CRM é obrigatório")
+    @NotBlank(message = "Lembre-se: Campo Obrigatório.")
     @Size(max = 15)
     private String crm;
 
-    @NotBlank(message = "UF do CRM é obrigatória")
+    @NotBlank(message = "Lembre-se: Campo Obrigatório.")
     @Size(min = 2, max = 2)
     private String ufCrm;
 
-    @NotBlank(message = "Especialidade é obrigatória")
+    @NotBlank(message = "Lembre-se: Campo Obrigatório.")
     @Size(max = 80)
     private String especialidade;
 
