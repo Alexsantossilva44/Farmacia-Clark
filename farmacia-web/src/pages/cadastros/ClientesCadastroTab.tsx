@@ -1028,7 +1028,7 @@ export function ClientesCadastroTab() {
           </div>
 
         <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain space-y-5 pr-0.5">
-          <section className="min-w-0">
+          <section className="glass-section rounded-xl p-4 min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Dados pessoais
             </h3>
@@ -1280,7 +1280,7 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section className="min-w-0">
+          <section className="glass-section rounded-xl p-4 min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Contato</h3>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-w-0">
               <Input
@@ -1422,7 +1422,7 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section className="min-w-0">
+          <section className="glass-section rounded-xl p-4 min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">Endereço</h3>
             <div className="space-y-2.5 min-w-0">
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_100px] gap-2.5 min-w-0">
@@ -1675,7 +1675,7 @@ export function ClientesCadastroTab() {
             </div>
           </section>
 
-          <section className="min-w-0">
+          <section className="glass-section rounded-xl p-4 min-w-0">
             <h3 className="text-[10px] uppercase tracking-widest text-[#8b9cb3] mb-2.5">
               Informações clínicas
             </h3>

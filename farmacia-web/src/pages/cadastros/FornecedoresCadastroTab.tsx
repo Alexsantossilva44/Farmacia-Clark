@@ -203,7 +203,7 @@ export function FornecedoresCadastroTab() {
           <h2 className="font-semibold mb-4">{tituloFormulario}</h2>
           {error && <p className="text-sm text-coral mb-3">{error}</p>}
           {success && <p className="text-sm text-mint mb-3">{success}</p>}
-          <div className="space-y-3">
+          <div className="glass-section rounded-xl p-4 space-y-3">
             <Input
               label="Razão social *"
               value={razaoSocial}

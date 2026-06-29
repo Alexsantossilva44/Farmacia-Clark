@@ -326,7 +326,7 @@ export function MedicamentosCadastroTab() {
         {success && <p className="text-sm text-mint mb-3 shrink-0">{success}</p>}
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1 -mr-1">
-          <div ref={formRef} className="space-y-3">
+          <div ref={formRef} className="glass-section rounded-xl p-4 space-y-3">
           <Input
             ref={nomeRef}
             label="Nome comercial *"
