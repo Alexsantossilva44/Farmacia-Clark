@@ -1,6 +1,7 @@
 package br.com.farmacia.api.v1.model.input;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,6 +11,9 @@ import lombok.Setter;
 public class PrescritorInput {
     @NotBlank(message = "Nome do prescritor é obrigatório")
     @Size(max = 150)
+    @Pattern(
+        regexp = "^[\\p{L}]+(?: [\\p{L}]+)+$",
+        message = "Nome deve conter apenas letras e um espaço entre nome e sobrenome")
     private String nome;
 
     @NotBlank(message = "CRM é obrigatório")

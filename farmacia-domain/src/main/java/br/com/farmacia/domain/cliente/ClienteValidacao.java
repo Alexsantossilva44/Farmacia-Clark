@@ -18,10 +18,8 @@ public final class ClienteValidacao {
     /** Limite da coluna {@code clientes.nome} — era 150 (V3), reduzido para 100 (V6). */
     public static final int NOME_MAX_LENGTH = 100;
 
-    // D-07 corrigido: permite hífen simples entre partes do nome (ex: "Silva-Santos");
-    // (?:-[\\p{L}]+)* rejeita múltiplos hífens consecutivos como "Jorge ---Macedo"
     private static final Pattern NOME_PESSOA = Pattern.compile(
-        "^[\\p{L}]+(?:-[\\p{L}]+)*(?: [\\p{L}]+(?:-[\\p{L}]+)*)+$");
+        "^[\\p{L}]+(?: [\\p{L}]+)+$");
 
     // Alteração: regex alinhada ao front — TLD só letras (2-63); rejeita ex.: gmail.com.lixo...1.
     private static final Pattern EMAIL = Pattern.compile(
@@ -221,7 +219,7 @@ public final class ClienteValidacao {
             return null;
         }
         return nome.trim()
-            .replaceAll("[^\\p{L}\\s-]", "") // D-07: mantém hífen para nomes compostos como "Silva-Santos"
+            .replaceAll("[^\\p{L}\\s]", "")
             .replaceAll("\\s+", " ");
     }
 

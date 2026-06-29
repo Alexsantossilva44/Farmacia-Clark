@@ -26,6 +26,7 @@ import {
   validarObrigatorio,
   validarSelecao,
 } from '@/lib/validacao-formulario'
+import { sanitizeNomePessoa } from '@/lib/validacao-cliente'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -614,8 +615,7 @@ export function CatalogoSimpleTab({ kind }: Props) {
                 label="Nome completo *"
                 value={nomePrescritor}
                 onChange={(e) => {
-                  const v = e.target.value
-                  if (v && !/^[a-zA-ZÀ-ÿ0-9]/.test(v)) return
+                  const v = sanitizeNomePessoa(e.target.value)
                   setNomePrescritor(v)
                   if (fieldErrors.nomePrescritor && v.trim()) setErroTemporario('nomePrescritor', undefined)
                 }}

@@ -32,20 +32,19 @@ class ClienteValidacaoTest {
     }
 
     @Test
-    @DisplayName("rejeita nome com múltiplos hífens consecutivos")
+    @DisplayName("rejeita nome com hífen")
     void rejeita_nome_com_hifen() {
-        // D-07: "---" consecutivos não são parte válida de nome — regex rejeita
-        assertThatThrownBy(() -> ClienteValidacao.validarNome("Jorge ---Macedo"))
+        assertThatThrownBy(() -> ClienteValidacao.validarNome("Jorge-Macedo Silva"))
             .isInstanceOf(ClienteDadosInvalidosException.class)
             .hasMessageContaining("letras");
     }
 
     @Test
-    @DisplayName("aceita nome com hífen simples entre partes do nome")
-    void aceita_nome_com_hifen() {
-        // D-07: hífen simples é válido em nomes compostos brasileiros
-        assertThatCode(() -> ClienteValidacao.validarNome("Maria da Silva-Santos"))
-            .doesNotThrowAnyException();
+    @DisplayName("rejeita nome com hífen simples entre partes")
+    void rejeita_nome_com_hifen_simples() {
+        assertThatThrownBy(() -> ClienteValidacao.validarNome("Maria da Silva-Santos"))
+            .isInstanceOf(ClienteDadosInvalidosException.class)
+            .hasMessageContaining("letras");
     }
 
     @Test
