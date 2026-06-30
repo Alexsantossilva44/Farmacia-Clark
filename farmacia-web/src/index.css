@@ -23,11 +23,12 @@
   body {
     @apply bg-bg-deep text-[#f0f4f8] font-sans min-h-screen overflow-x-hidden;
     background-image:
-      radial-gradient(ellipse 80% 60% at 8%  18%,  rgba(45, 212, 168, 0.50), transparent),
-      radial-gradient(ellipse 60% 55% at 88% 78%,  rgba(167, 139, 250, 0.40), transparent),
-      radial-gradient(ellipse 55% 45% at 82% 4%,   rgba(56, 189, 248, 0.32), transparent),
-      radial-gradient(ellipse 45% 35% at 5%  85%,  rgba(255, 51, 102, 0.22), transparent),
-      radial-gradient(ellipse 55% 35% at 50% 100%, rgba(255, 176, 32, 0.18), transparent);
+      radial-gradient(ellipse 100% 80% at 50% 50%,  rgba(167, 139, 250, 0.42), transparent),
+      radial-gradient(ellipse 70%  55% at 15% 20%,  rgba(167, 139, 250, 0.30), transparent),
+      radial-gradient(ellipse 60%  50% at 85% 80%,  rgba(139, 92,  246, 0.38), transparent),
+      radial-gradient(ellipse 50%  40% at 80%  5%,  rgba(56,  189, 248, 0.22), transparent),
+      radial-gradient(ellipse 40%  30% at 5%  88%,  rgba(255, 51,  102, 0.16), transparent),
+      radial-gradient(ellipse 45%  30% at 50% 100%, rgba(124, 58,  237, 0.20), transparent);
   }
 
   body::before {
