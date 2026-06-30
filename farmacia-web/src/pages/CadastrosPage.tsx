@@ -43,10 +43,15 @@ export function CadastrosPage() {
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all
+              style={{
+                borderColor: tabAtiva === id
+                  ? 'rgba(45, 212, 168, 0.30)'
+                  : 'rgba(255, 255, 255, 0.12)',
+              }}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all border
                 ${tabAtiva === id
-                  ? 'bg-mint/15 text-mint border border-mint/25'
-                  : 'text-[#8b9cb3] border border-white/10 hover:text-white hover:bg-white/5'
+                  ? 'bg-mint/15 text-mint'
+                  : 'text-[#8b9cb3] hover:text-white hover:bg-white/5'
                 }`}
             >
               <Icon className="size-4" />
